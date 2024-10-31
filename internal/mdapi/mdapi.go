@@ -6,11 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
 
-type chapter_meta struct {
+type chapterMeta struct {
 	Result  string `json:"result"`
 	BaseURL string `json:"baseUrl"`
 	Chapter struct {
@@ -20,9 +21,43 @@ type chapter_meta struct {
 	} `json:"chapter"`
 }
 
+type seriesFeed struct {
+	Result   string `json:"result"`
+	Response string `json:"response"`
+	Data     []struct {
+		ID string `json:"id"`
+		//Type       string `json:"type"`
+		Attributes struct {
+			//Title   string `json:"title"`
+			Volume  string `json:"volume"`
+			Chapter string `json:"chapter"`
+			/*Pages              int    `json:"pages"`
+			TranslatedLanguage string `json:"translatedLanguage"`
+			Uploader           string `json:"uploader"`
+			ExternalURL        string `json:"externalUrl"`
+			Version            int    `json:"version"`
+			CreatedAt          string `json:"createdAt"`
+			UpdatedAt          string `json:"updatedAt"`
+			PublishAt          string `json:"publishAt"`
+			ReadableAt         string `json:"readableAt"`*/
+		} `json:"attributes"`
+		/*Relationships []struct {
+			ID         string `json:"id"`
+			Type       string `json:"type"`
+			Related    string `json:"related"`
+			Attributes struct {
+			} `json:"attributes"`
+		} `json:"relationships"`*/
+	} `json:"data"`
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+	Total  int `json:"total"`
+}
+
 // Download a chapter given the chapter's ID
 func DlChapter(chapID string) {
 	chap := getChapMetadata(chapID)
+
 	// Respect API rate limit
 	limiter := time.Tick(350 * time.Millisecond)
 
@@ -45,7 +80,7 @@ func DlChapter(chapID string) {
 	}
 }
 
-func getChapMetadata(chapID string) chapter_meta {
+func getChapMetadata(chapID string) chapterMeta {
 	chapURL := fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", chapID)
 
 	// Get the image delivery metadata
@@ -57,9 +92,9 @@ func getChapMetadata(chapID string) chapter_meta {
 
 	// Attempt to decode the response into the chapter struct
 	dec := json.NewDecoder(resp.Body)
-	var chap chapter_meta
+	var chap chapterMeta
 	if err := dec.Decode(&chap); err != nil {
-		log.Fatalf("ERROR: Failed to decode respoonse from %s", chapURL)
+		log.Fatalf("ERROR: Failed to decode response from %s", chapURL)
 	}
 
 	return chap
@@ -75,4 +110,27 @@ func dlPage(pageURL string, f *os.File) {
 	if _, err := io.Copy(f, img.Body); err != nil {
 		log.Fatalf("ERROR: Failed to write to file %s", f.Name())
 	}
+}
+
+func GetFeed(seriesID string, offset int) {
+	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", seriesID)
+	params := url.Values{}
+	params.Add("translatedLanguage[]", "en")
+	params.Add("includeExternalUrl", "0")
+	params.Add("offset", fmt.Sprint(offset))
+	fullURL := fmt.Sprintf("%s?%s", feedURL, params.Encode())
+
+	feedResp, err := http.Get(fullURL)
+	if err != nil {
+		log.Fatalf("ERROR: Failed to retrieve feed %s", fullURL)
+	}
+	defer feedResp.Body.Close()
+
+	dec := json.NewDecoder(feedResp.Body)
+	var m seriesFeed
+	if err := dec.Decode(&m); err != nil {
+		log.Fatalf("ERROR: Failed to decode response from %s", fullURL)
+	}
+
+	fmt.Println(m)
 }

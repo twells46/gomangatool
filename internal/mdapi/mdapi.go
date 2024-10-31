@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type chapter struct {
+type chapter_meta struct {
 	Result  string `json:"result"`
 	BaseURL string `json:"baseUrl"`
 	Chapter struct {
@@ -22,22 +22,7 @@ type chapter struct {
 
 // Download a chapter given the chapter's ID
 func DlChapter(chapID string) {
-	chapURL := fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", chapID)
-
-	// Get the image delivery metadata
-	resp, err := http.Get(chapURL)
-	if err != nil {
-		log.Fatalf("ERROR: Failed to retrieve %s", chapURL)
-	}
-	defer resp.Body.Close()
-
-	// Attempt to decode the response into the chapter struct
-	dec := json.NewDecoder(resp.Body)
-	var chap chapter
-	if err := dec.Decode(&chap); err != nil {
-		log.Fatalf("ERROR: Failed to decode respoonse from %s", chapURL)
-	}
-
+	chap := getChapMetadata(chapID)
 	// Respect API rate limit
 	limiter := time.Tick(350 * time.Millisecond)
 
@@ -58,6 +43,26 @@ func DlChapter(chapID string) {
 
 		dlPage(pageURL, f)
 	}
+}
+
+func getChapMetadata(chapID string) chapter_meta {
+	chapURL := fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", chapID)
+
+	// Get the image delivery metadata
+	resp, err := http.Get(chapURL)
+	if err != nil {
+		log.Fatalf("ERROR: Failed to retrieve %s", chapURL)
+	}
+	defer resp.Body.Close()
+
+	// Attempt to decode the response into the chapter struct
+	dec := json.NewDecoder(resp.Body)
+	var chap chapter_meta
+	if err := dec.Decode(&chap); err != nil {
+		log.Fatalf("ERROR: Failed to decode respoonse from %s", chapURL)
+	}
+
+	return chap
 }
 
 func dlPage(pageURL string, f *os.File) {

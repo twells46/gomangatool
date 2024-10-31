@@ -17,7 +17,6 @@ type chapterMeta struct {
 	Chapter struct {
 		Hash string   `json:"hash"`
 		Data []string `json:"data"`
-		//DataSaver []string `json:"dataSaver"`
 	} `json:"chapter"`
 }
 
@@ -25,29 +24,11 @@ type seriesFeed struct {
 	Result   string `json:"result"`
 	Response string `json:"response"`
 	Data     []struct {
-		ID string `json:"id"`
-		//Type       string `json:"type"`
+		ID         string `json:"id"`
 		Attributes struct {
-			//Title   string `json:"title"`
 			Volume  string `json:"volume"`
 			Chapter string `json:"chapter"`
-			/*Pages              int    `json:"pages"`
-			TranslatedLanguage string `json:"translatedLanguage"`
-			Uploader           string `json:"uploader"`
-			ExternalURL        string `json:"externalUrl"`
-			Version            int    `json:"version"`
-			CreatedAt          string `json:"createdAt"`
-			UpdatedAt          string `json:"updatedAt"`
-			PublishAt          string `json:"publishAt"`
-			ReadableAt         string `json:"readableAt"`*/
 		} `json:"attributes"`
-		/*Relationships []struct {
-			ID         string `json:"id"`
-			Type       string `json:"type"`
-			Related    string `json:"related"`
-			Attributes struct {
-			} `json:"attributes"`
-		} `json:"relationships"`*/
 	} `json:"data"`
 	Limit  int `json:"limit"`
 	Offset int `json:"offset"`

@@ -20,7 +20,7 @@ type chapterMeta struct {
 	} `json:"chapter"`
 }
 
-type seriesFeed struct {
+type SeriesFeed struct {
 	Result   string `json:"result"`
 	Response string `json:"response"`
 	Data     []struct {
@@ -93,7 +93,7 @@ func dlPage(pageURL string, f *os.File) {
 	}
 }
 
-func GetFeed(seriesID string, offset int) {
+func GetFeed(seriesID string, offset int) SeriesFeed {
 	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", seriesID)
 	params := url.Values{}
 	params.Add("translatedLanguage[]", "en")
@@ -108,10 +108,10 @@ func GetFeed(seriesID string, offset int) {
 	defer feedResp.Body.Close()
 
 	dec := json.NewDecoder(feedResp.Body)
-	var m seriesFeed
+	var m SeriesFeed
 	if err := dec.Decode(&m); err != nil {
 		log.Fatalf("ERROR: Failed to decode response from %s", fullURL)
 	}
 
-	fmt.Println(m)
+	return m
 }

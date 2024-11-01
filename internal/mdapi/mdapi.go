@@ -48,11 +48,11 @@ func DlChapter(chapID string) {
 		fname := fmt.Sprintf("%s/%s", chapID, pageName)
 
 		if err := os.MkdirAll(chapID, 0770); err != nil {
-			log.Fatalf("ERROR: Failed to create directory %s", chapID)
+			log.Fatalf("%s: Failed to create directory %s", err, chapID)
 		}
 		f, err := os.Create(fname)
 		if err != nil {
-			log.Fatalf("ERROR: Failed to create file %s", fname)
+			log.Fatalf("%s: Failed to create file %s", err, fname)
 		}
 
 		<-limiter
@@ -67,7 +67,7 @@ func getChapMetadata(chapID string) chapterMeta {
 	// Get the image delivery metadata
 	resp, err := http.Get(chapURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to retrieve %s", chapURL)
+		log.Fatalf("%s: Failed to retrieve %s", err, chapURL)
 	}
 	defer resp.Body.Close()
 
@@ -75,7 +75,7 @@ func getChapMetadata(chapID string) chapterMeta {
 	dec := json.NewDecoder(resp.Body)
 	var chap chapterMeta
 	if err := dec.Decode(&chap); err != nil {
-		log.Fatalf("ERROR: Failed to decode response from %s", chapURL)
+		log.Fatalf("%s: Failed to decode response from %s", err, chapURL)
 	}
 
 	return chap
@@ -84,12 +84,12 @@ func getChapMetadata(chapID string) chapterMeta {
 func dlPage(pageURL string, f *os.File) {
 	img, err := http.Get(pageURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to retrieve %s", pageURL)
+		log.Fatalf("%s: Failed to retrieve %s", err, pageURL)
 	}
 	defer img.Body.Close()
 
 	if _, err := io.Copy(f, img.Body); err != nil {
-		log.Fatalf("ERROR: Failed to write to file %s", f.Name())
+		log.Fatalf("%s: Failed to write to file %s", err, f.Name())
 	}
 }
 
@@ -103,14 +103,14 @@ func GetFeed(seriesID string, offset int) SeriesFeed {
 
 	feedResp, err := http.Get(fullURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to retrieve feed %s", fullURL)
+		log.Fatalf("%s: Failed to retrieve feed %s", err, fullURL)
 	}
 	defer feedResp.Body.Close()
 
 	dec := json.NewDecoder(feedResp.Body)
 	var m SeriesFeed
 	if err := dec.Decode(&m); err != nil {
-		log.Fatalf("ERROR: Failed to decode response from %s", fullURL)
+		log.Fatalf("%s: Failed to decode response from %s", err, fullURL)
 	}
 
 	return m

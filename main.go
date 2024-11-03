@@ -57,7 +57,7 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	if err != nil {
 		log.Fatalf("%s: Failed to query db", err)
 	}
-	rows.Close()
+	defer rows.Close()
 
 	var all []Chapter
 	for rows.Next() {

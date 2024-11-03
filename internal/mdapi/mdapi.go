@@ -61,6 +61,7 @@ func DlChapter(chapID string) {
 	}
 }
 
+// Pull and decode chapter metadata
 func getChapMetadata(chapID string) chapterMeta {
 	chapURL := fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", chapID)
 
@@ -81,6 +82,7 @@ func getChapMetadata(chapID string) chapterMeta {
 	return chap
 }
 
+// Download a single page to the file
 func dlPage(pageURL string, f *os.File) {
 	img, err := http.Get(pageURL)
 	if err != nil {
@@ -93,6 +95,7 @@ func dlPage(pageURL string, f *os.File) {
 	}
 }
 
+// Pull the feed for a series
 func GetFeed(seriesID string, offset int) SeriesFeed {
 	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", seriesID)
 	params := url.Values{}

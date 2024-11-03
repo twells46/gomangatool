@@ -48,6 +48,32 @@ func NewDb(db *sql.DB) *SQLite {
 	return &SQLite{db: db}
 }
 
+func (r *SQLite) GetTags(MangaID string) []Tag {
+	query := `
+	SELECT TagID, TagTitle
+	FROM Tag
+	JOIN ItemTag USING (TagID)
+	JOIN Manga USING (MangaID)
+	WHERE Manga.MangaID = ?`
+	rows, err := r.db.Query(query, MangaID)
+	if err != nil {
+		log.Fatalf("%s: Failed to query db", err)
+	}
+	defer rows.Close()
+
+	var all []Tag
+	for rows.Next() {
+		var t Tag
+		err := rows.Scan(&t.TagID, &t.TagTitle)
+		if err != nil {
+			log.Fatalf("%s: Failed to query db", err)
+		}
+		all = append(all, t)
+	}
+
+	return all
+}
+
 func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	query := `
 	SELECT *
@@ -88,6 +114,7 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 			return nil, err
 		}
 		m.Chapters = r.GetChapters(m.MangaID)
+		m.Tags = r.GetTags(m.MangaID)
 		all = append(all, m)
 	}
 

@@ -151,3 +151,21 @@ func GetFeed(seriesID string, offset int) SeriesFeed {
 
 	return m
 }
+
+func PullMangaMeta(MangaID string) {
+	url := fmt.Sprintf("https://api.mangadex.org/manga/%s", MangaID)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("%s: Failed to retrieve series from %s", err, url)
+	}
+	defer resp.Body.Close()
+
+	dec := json.NewDecoder(resp.Body)
+
+	var m MangaMeta
+	if err := dec.Decode(&m); err != nil {
+		log.Fatalf("%s: Failed to decode response from %s", err, url)
+	}
+
+	fmt.Println(m)
+}

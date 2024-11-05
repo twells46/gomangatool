@@ -12,5 +12,6 @@ func main() {
 		fmt.Println(feed)
 	*/
 
-	backend.SqlTester()
+	//backend.SqlTester()
+	backend.PullMangaMeta("cde5424f-02e5-4c90-a433-b92d831d9856")
 }

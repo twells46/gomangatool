@@ -13,5 +13,5 @@ func main() {
 	*/
 
 	//backend.SqlTester()
-	backend.PullMangaMeta("cde5424f-02e5-4c90-a433-b92d831d9856")
+	backend.NewManga("ee51d8fb-ba27-46a5-b204-d565ea1b11aa")
 }

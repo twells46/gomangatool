@@ -152,7 +152,7 @@ func GetFeed(seriesID string, offset int) SeriesFeed {
 	return m
 }
 
-func PullMangaMeta(MangaID string) {
+func PullMangaMeta(MangaID string) MangaMeta {
 	url := fmt.Sprintf("https://api.mangadex.org/manga/%s", MangaID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -167,5 +167,46 @@ func PullMangaMeta(MangaID string) {
 		log.Fatalf("%s: Failed to decode response from %s", err, url)
 	}
 
+	return m
+}
+
+func NewManga(MangaID string) {
+	meta := PullMangaMeta(MangaID)
+	title, abbrev := parseTitle(&meta)
+
+	m := Manga{
+		MangaID:   MangaID,
+		SerTitle:  abbrev,
+		FullTitle: title,
+		Descr:     meta.Data.Attributes.Description.En,
+	}
+
 	fmt.Println(m)
+}
+
+func parseTitle(meta *MangaMeta) (string, string) {
+	titleOptions := []string{meta.Data.Attributes.Title.En}
+	for _, v := range meta.Data.Attributes.AltTitles {
+		if len(v.En) > 0 {
+			titleOptions = append(titleOptions, v.En)
+		} else if len(v.Ja) > 0 {
+			titleOptions = append(titleOptions, v.Ja)
+		} else if len(v.JaRo) > 0 {
+			titleOptions = append(titleOptions, v.JaRo)
+		}
+	}
+	var n int
+	fmt.Println("Please choose a title:")
+	for i, v := range titleOptions {
+		fmt.Printf("[%d] %s\n", i, v)
+	}
+
+	fmt.Print("Your choice: ")
+	fmt.Scanln(&n)
+	fmt.Printf("You chose: %s\n", titleOptions[n])
+
+	var abbrev string
+	fmt.Print("What should the abbreviated title be? ")
+	fmt.Scanln(&abbrev)
+	return titleOptions[n], abbrev
 }

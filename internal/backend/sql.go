@@ -121,7 +121,7 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 }
 
 func (r *SQLite) Initdb() error {
-	create_query := `
+	create_stmt := `
 	PRAGMA foreign_keys = ON;
 	CREATE TABLE Manga(
 	    MangaID VARCHAR(64) PRIMARY KEY,
@@ -157,8 +157,9 @@ func (r *SQLite) Initdb() error {
 	    IsRead INTEGER NOT NULL,
 
 	    FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
-	);`
-	_, err := r.db.Exec(create_query)
+	);
+	CREATE INDEX ChapterMid_idx on Chapter(MangaID);`
+	_, err := r.db.Exec(create_stmt)
 
 	return err
 }

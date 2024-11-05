@@ -30,6 +30,8 @@ type Manga struct {
 	TimeModified time.Time
 	Tags         []Tag
 	Chapters     []Chapter
+	Demographic  string
+	PubStatus    string
 }
 
 type SQLite struct {
@@ -108,7 +110,7 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 
 	for rows.Next() {
 		var m Manga
-		err := rows.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified)
+		err := rows.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified, &m.Demographic, &m.PubStatus)
 		if err != nil {
 			return nil, err
 		}
@@ -123,13 +125,18 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 func (r *SQLite) Initdb() error {
 	create_stmt := `
 	PRAGMA foreign_keys = ON;
-	CREATE TABLE Manga(
+		CREATE TABLE Manga(
 	    MangaID VARCHAR(64) PRIMARY KEY,
 	    SerTitle VARCHAR(32) NOT NULL UNIQUE,
 	    FullTitle VARCHAR(128) NOT NULL,
 	    Descr VARCHAR(1024),
-	    TimeModified DATETIME
-	);
+	    TimeModified DATETIME,
+	    Demographic VARCHAR(7),
+	    PubStatus VARCHAR(9),
+
+	    CHECK (Demographic IN ('Shounen', 'Shoujo', 'Seinen', 'Jousei')),
+	    CHECK (PubStatus IN ('Ongoing', 'Completed', 'Hiatus', 'Cancelled'))
+    );
 
 	CREATE TABLE Tag (
 	    TagID INTEGER PRIMARY KEY,
@@ -237,8 +244,8 @@ func (r *SQLite) InsertChapters(chapters []Chapter) {
 }
 
 func (r *SQLite) InsertManga(m Manga) {
-	insertStmt := `INSERT INTO Manga values (?, ?, ?, ?, ?)`
-	_, err := r.db.Exec(insertStmt, m.MangaID, m.SerTitle, m.FullTitle, m.Descr, m.TimeModified)
+	insertStmt := `INSERT INTO Manga values (?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.Exec(insertStmt, m.MangaID, m.SerTitle, m.FullTitle, m.Descr, m.TimeModified, m.Demographic, m.PubStatus)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -296,6 +303,8 @@ It’s an adorable romantic comedy between a mistress and her servant, featuring
 		TimeModified: time.Unix(0, 0),
 		Tags:         []Tag{testt1},
 		Chapters:     []Chapter{testc1, testc2},
+		Demographic:  "Shounen",
+		PubStatus:    "Ongoing",
 	}
 
 	store.InsertManga(testm1)
@@ -327,6 +336,8 @@ Due to his natural tendency to assist others (a "helper type" personality that m
 		TimeModified: time.Unix(0, 0),
 		Tags:         []Tag{testt1, testt2},
 		Chapters:     []Chapter{testc3, testc4},
+		Demographic:  "Shounen",
+		PubStatus:    "Ongoing",
 	}
 
 	store.InsertManga(testm2)

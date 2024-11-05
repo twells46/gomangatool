@@ -11,6 +11,39 @@ import (
 	"time"
 )
 
+type MangaMeta struct {
+	Result   string `json:"result"`
+	Response string `json:"response"`
+	Data     struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Title struct {
+				En string `json:"en"`
+			} `json:"title"`
+			AltTitles []struct {
+				Ja   string `json:"ja,omitempty"`
+				JaRo string `json:"ja-ro,omitempty"`
+				En   string `json:"en,omitempty"`
+			} `json:"altTitles"`
+			Description struct {
+				En string `json:"en"`
+			} `json:"description"`
+			PublicationDemographic string `json:"publicationDemographic"`
+			Status                 string `json:"status"`
+			Tags                   []struct {
+				ID string `json:"id"`
+				//Type       string `json:"type"`
+				Attributes struct {
+					Name struct {
+						En string `json:"en"`
+					} `json:"name"`
+				} `json:"attributes"`
+			} `json:"tags"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
 type chapterMeta struct {
 	Result  string `json:"result"`
 	BaseURL string `json:"baseUrl"`

@@ -164,7 +164,55 @@ func (r *SQLite) Initdb() error {
 	return err
 }
 
-func (r *SQLite) InsertChapters(cs []Chapter) {
+func (r *SQLite) InsertTags(tags []Tag) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+	stmt, err := tx.Prepare("INSERT INTO Tag values (?, ?)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	for _, t := range tags {
+		_, err = stmt.Exec(t.TagID, t.TagTitle)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (r *SQLite) LinkTags(MangaID string, tags []Tag) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+	stmt, err := tx.Prepare("INSERT INTO ItemTag values (?, ?)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	for _, t := range tags {
+		_, err = stmt.Exec(MangaID, t.TagID)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (r *SQLite) InsertChapters(chapters []Chapter) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		log.Fatal(err)
@@ -175,7 +223,7 @@ func (r *SQLite) InsertChapters(cs []Chapter) {
 	}
 	defer stmt.Close()
 
-	for _, c := range cs {
+	for _, c := range chapters {
 		_, err = stmt.Exec(c.ChapterHash, c.ChapterNum, c.ChapterName, c.MangaID, c.Download, c.IsRead)
 		if err != nil {
 			log.Fatal(err)
@@ -196,6 +244,7 @@ func (r *SQLite) InsertManga(m Manga) {
 	}
 
 	r.InsertChapters(m.Chapters)
+	r.LinkTags(m.MangaID, m.Tags)
 }
 
 func SqlTester() {
@@ -209,6 +258,11 @@ func SqlTester() {
 	store := NewDb(db)
 
 	store.Initdb()
+
+	testt1 := Tag{1, "Romance"}
+	testt2 := Tag{2, "Harem"}
+
+	store.InsertTags([]Tag{testt1, testt2})
 
 	testc1 := Chapter{
 		ChapterHash: "598c7824-5822-4ac0-90f5-5439f1f7015e",
@@ -240,7 +294,7 @@ As a result, Hoshine starts to approach Eito even more, making bolder advances t
 
 It’s an adorable romantic comedy between a mistress and her servant, featuring a young lady who strives to win her servant’s love!`,
 		TimeModified: time.Unix(0, 0),
-		Tags:         []Tag{},
+		Tags:         []Tag{testt1},
 		Chapters:     []Chapter{testc1, testc2},
 	}
 
@@ -271,7 +325,7 @@ It’s an adorable romantic comedy between a mistress and her servant, featuring
 
 Due to his natural tendency to assist others (a "helper type" personality that makes him constantly want to lend a hand), Mitomo Tasuku had always lived in the shadows. To break out of this, he made it his life's mission to "become number one." However, at the high school he transfers to, he encounters three detective girls, who happen to be his rivals from elementary school with whom he formed a detective club together. Thus begins Tasuku's fierce battle for the top detective spot! However... these girls seem to harbor passionate feelings of a different kind...!?`,
 		TimeModified: time.Unix(0, 0),
-		Tags:         []Tag{},
+		Tags:         []Tag{testt1, testt2},
 		Chapters:     []Chapter{testc3, testc4},
 	}
 

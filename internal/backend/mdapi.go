@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -184,9 +185,19 @@ func NewManga(MangaID string, store *SQLite) {
 		Descr:        meta.Data.Attributes.Description.En,
 		TimeModified: time.Unix(0, 0),
 		Tags:         tags,
+		Demographic:  goodUpper(meta.Data.Attributes.PublicationDemographic),
+		PubStatus:    goodUpper(meta.Data.Attributes.Status),
 	}
 
 	fmt.Printf("%+v\n", m)
+}
+
+func goodUpper(text string) string {
+	r, size := utf8.DecodeRuneInString(text)
+	if r == utf8.RuneError {
+		// handle error
+	}
+	return string(unicode.ToUpper(r)) + text[size:]
 }
 
 // Choose the title and abbreviated title to use for the series

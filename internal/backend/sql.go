@@ -176,7 +176,7 @@ func (r *SQLite) InsertTags(names []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	stmt, err := tx.Prepare("INSERT OR REPLACE INTO Tag (TagTitle) values (?)")
+	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Tag (TagTitle) values (?)")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func SqlTester() {
 	testt1 := Tag{1, "Romance"}
 	testt2 := Tag{2, "Harem"}
 
-	store.InsertTags([]string{"Romance", "Harem"})
+	store.InsertTags([]string{"Romance", "Harem", "Romance"})
 
 	testc1 := Chapter{
 		ChapterHash: "598c7824-5822-4ac0-90f5-5439f1f7015e",

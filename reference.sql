@@ -17,6 +17,8 @@ CREATE TABLE Tag (
     TagTitle VARCHAR(16) UNIQUE
 );
 
+CREATE INDEX TagTitle_idx on Tag(TagTitle);
+
 -- Using the extra table for tagging doesn't save enough space to be worthwhile
 -- However, it does enable me to easily correlate a tag name with a title in the db,
 -- which I assume is better optimized than it would be in code

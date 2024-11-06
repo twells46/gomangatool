@@ -12,6 +12,6 @@ func main() {
 		fmt.Println(feed)
 	*/
 
-	backend.SqlTester()
-	//backend.NewManga("ee51d8fb-ba27-46a5-b204-d565ea1b11aa")
+	//backend.SqlTester()
+	backend.NewManga("ee51d8fb-ba27-46a5-b204-d565ea1b11aa")
 }

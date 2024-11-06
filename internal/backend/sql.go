@@ -142,6 +142,7 @@ func (r *SQLite) Initdb() error {
 	    TagID INTEGER PRIMARY KEY,
 	    TagTitle VARCHAR(16) UNIQUE
 	);
+	CREATE INDEX TagTitle_idx on Tag(TagTitle);
 
 	CREATE TABLE IF NOT EXISTS ItemTag (
 	    MangaID VARCHAR(64),
@@ -171,6 +172,7 @@ func (r *SQLite) Initdb() error {
 	return err
 }
 
+// Using just the names here makes other things much easier
 func (r *SQLite) InsertTags(names []string) {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -252,6 +254,17 @@ func (r *SQLite) InsertManga(m Manga) {
 
 	r.InsertChapters(m.Chapters)
 	r.LinkTags(m.MangaID, m.Tags)
+}
+
+// WARNING: YOU SHOULD NOT USE THIS
+func Opendb(name string) *SQLite {
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	return NewDb(db)
 }
 
 func SqlTester() {

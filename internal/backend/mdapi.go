@@ -173,6 +173,7 @@ func PullMangaMeta(MangaID string) MangaMeta {
 func NewManga(MangaID string) {
 	meta := PullMangaMeta(MangaID)
 	title, abbrev := parseTitle(&meta)
+	parseTags(&meta)
 
 	m := Manga{
 		MangaID:   MangaID,
@@ -211,11 +212,11 @@ func parseTitle(meta *MangaMeta) (string, string) {
 	return titleOptions[n], abbrev
 }
 
-/*
 func parseTags(meta *MangaMeta) []Tag {
-	for i, v := range meta.Data.Attributes.Tags {
-		name := v.Attributes.Name
+	tagNames := make([]string, 2)
+	for _, v := range meta.Data.Attributes.Tags {
+		tagNames = append(tagNames, v.Attributes.Name.En)
 	}
+
 	return nil
 }
-*/

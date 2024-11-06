@@ -71,7 +71,7 @@ type SeriesFeed struct {
 }
 
 // Download a chapter given the chapter's ID
-func DlChapter(chapID string) {
+func dlChapter(chapID string) {
 	chap := getChapMetadata(chapID)
 
 	// Respect API rate limit
@@ -154,7 +154,8 @@ func GetFeed(seriesID string, offset int) SeriesFeed {
 	return m
 }
 
-func PullMangaMeta(MangaID string) MangaMeta {
+// Retrieve and parse the metadata for this given series from the series' ID.
+func pullMangaMeta(MangaID string) MangaMeta {
 	url := fmt.Sprintf("https://api.mangadex.org/manga/%s", MangaID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -172,9 +173,11 @@ func PullMangaMeta(MangaID string) MangaMeta {
 	return m
 }
 
-// Create and store a new manga
+// Create and store a new manga.
+// This does not do anything with feeds or getting the chapters,
+// it only gets the series info.
 func NewManga(MangaID string, store *SQLite) {
-	meta := PullMangaMeta(MangaID)
+	meta := pullMangaMeta(MangaID)
 	title, abbrev := parseTitle(&meta)
 	tags := parseTags(&meta, store)
 
@@ -185,6 +188,7 @@ func NewManga(MangaID string, store *SQLite) {
 		Descr:        meta.Data.Attributes.Description.En,
 		TimeModified: time.Unix(0, 0),
 		Tags:         tags,
+		Chapters:     []Chapter{},
 		Demographic:  goodUpper(meta.Data.Attributes.PublicationDemographic),
 		PubStatus:    goodUpper(meta.Data.Attributes.Status),
 	}
@@ -239,6 +243,6 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 		}
 	}
 
-	store.InsertTags(tagNames)
+	store.insertTags(tagNames)
 	return store.tagNamesToTags(tagNames)
 }

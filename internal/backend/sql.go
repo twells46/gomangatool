@@ -34,21 +34,18 @@ type Manga struct {
 	PubStatus    string
 }
 
+// Store the sql connection.
+// Need a custom struct to define custom methods
 type SQLite struct {
 	db *sql.DB
 }
 
-type Database interface {
-	Init() error
-	Create(manga Manga) error
-	GetAll() ([]Manga, error)
-	Get(id string) (*Manga, error)
-}
-
+// Return a new SQLite connection
 func NewDb(db *sql.DB) *SQLite {
 	return &SQLite{db: db}
 }
 
+// Given a slice of tag names, retrieve the ID and return a slice of Tag structs.
 func (r *SQLite) tagNamesToTags(names []string) []Tag {
 	tags := make([]Tag, 0)
 	stmt, _ := r.db.Prepare("SELECT TagID, TagTitle FROM Tag WHERE TagTitle = ?")
@@ -66,7 +63,11 @@ func (r *SQLite) tagNamesToTags(names []string) []Tag {
 	return tags
 }
 
-func (r *SQLite) GetTags(MangaID string) []Tag {
+// Get all the tags for a given manga.
+// Works on an ID because it is part of the process of
+// constructing a new Manga struct, so it makes no sense
+// for it to take the struct.
+func (r *SQLite) getTags(MangaID string) []Tag {
 	query := `
 	SELECT TagID, TagTitle
 	FROM Tag
@@ -75,7 +76,7 @@ func (r *SQLite) GetTags(MangaID string) []Tag {
 	WHERE Manga.MangaID = ?`
 	rows, err := r.db.Query(query, MangaID)
 	if err != nil {
-		log.Fatalf("%s: Failed to query db", err)
+		log.Fatalf("%s: Failed to query get tags", err)
 	}
 	defer rows.Close()
 
@@ -84,7 +85,7 @@ func (r *SQLite) GetTags(MangaID string) []Tag {
 		var t Tag
 		err := rows.Scan(&t.TagID, &t.TagTitle)
 		if err != nil {
-			log.Fatalf("%s: Failed to query db", err)
+			log.Fatalf("%s: Failed to parse tags", err)
 		}
 		all = append(all, t)
 	}
@@ -92,14 +93,16 @@ func (r *SQLite) GetTags(MangaID string) []Tag {
 	return all
 }
 
-func (r *SQLite) GetChapters(MangaID string) []Chapter {
+// Get all the chapters for a given manga.
+// Takes ID instead of the full struct for the same reason as getTags.
+func (r *SQLite) getChapters(MangaID string) []Chapter {
 	query := `
 	SELECT *
 	FROM Chapter
 	WHERE MangaID = ?`
 	rows, err := r.db.Query(query, MangaID)
 	if err != nil {
-		log.Fatalf("%s: Failed to query db", err)
+		log.Fatalf("%s: Failed to query db for chapters", err)
 	}
 	defer rows.Close()
 
@@ -108,7 +111,7 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 		var c Chapter
 		err := rows.Scan(&c.ChapterHash, &c.ChapterNum, &c.ChapterName, &c.MangaID, &c.Download, &c.IsRead)
 		if err != nil {
-			log.Fatalf("%s: Failed to query db", err)
+			log.Fatalf("%s: Failed to parse chapter", err)
 		}
 		all = append(all, c)
 	}
@@ -116,10 +119,11 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	return all
 }
 
-func (r *SQLite) GetAll() ([]Manga, error) {
+// Get all the Manga from the DB, complete with tags and chapters.
+func (r *SQLite) GetAll() []Manga {
 	rows, err := r.db.Query("SELECT * FROM Manga")
 	if err != nil {
-		return nil, err
+		log.Fatalf("%s: Failed to query db for manga", err)
 	}
 	defer rows.Close()
 
@@ -129,17 +133,18 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 		var m Manga
 		err := rows.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified, &m.Demographic, &m.PubStatus)
 		if err != nil {
-			return nil, err
+			log.Fatalf("%s: Failed to parse manga", err)
 		}
-		m.Chapters = r.GetChapters(m.MangaID)
-		m.Tags = r.GetTags(m.MangaID)
+		m.Chapters = r.getChapters(m.MangaID)
+		m.Tags = r.getTags(m.MangaID)
 		all = append(all, m)
 	}
 
-	return all, nil
+	return all
 }
 
-func (r *SQLite) Initdb() error {
+// Initialize the database
+func (r *SQLite) initdb() {
 	create_stmt := `
 	PRAGMA foreign_keys = ON;
 		CREATE TABLE IF NOT EXISTS Manga(
@@ -184,104 +189,114 @@ func (r *SQLite) Initdb() error {
 	    FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
 	);
 	CREATE INDEX IF NOT EXISTS ChapterMid_idx on Chapter(MangaID);`
-	_, err := r.db.Exec(create_stmt)
 
-	return err
+	_, err := r.db.Exec(create_stmt)
+	if err != nil {
+		log.Fatalf("%s: Failed to initialize DB", err)
+	}
 }
 
-// Using just the names here makes other things much easier
-func (r *SQLite) InsertTags(names []string) {
+// Given a slice of tag names, add the tags to the DB if they don't already exist.
+func (r *SQLite) insertTags(names []string) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to begin transaction", err)
 	}
+
 	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Tag (TagTitle) values (?)")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to prepare transaction", err)
 	}
 	defer stmt.Close()
 
 	for _, name := range names {
 		_, err = stmt.Exec(name)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s: Failed to execute transaction on %s", err, name)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to commit transaction", err)
 	}
 }
 
-func (r *SQLite) LinkTags(MangaID string, tags []Tag) {
+// Link the specified Tags with their Manga in the DB.
+func (r *SQLite) linkTags(MangaID string, tags []Tag) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to begin transaction", err)
 	}
 	stmt, err := tx.Prepare("INSERT INTO ItemTag values (?, ?)")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to prepare transaction", err)
 	}
 	defer stmt.Close()
 
 	for _, t := range tags {
 		_, err = stmt.Exec(MangaID, t.TagID)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s: Failed to execute transaction on %v", err, t)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to commit transaction", err)
 	}
 }
 
-func (r *SQLite) InsertChapters(chapters []Chapter) {
+// Insert the given chapters to the DB.
+func (r *SQLite) insertChapters(chapters []Chapter) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to begin transaction", err)
 	}
 	stmt, err := tx.Prepare("INSERT INTO Chapter values (?, ?, ?, ?, ?, ?)")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to prepare transaction", err)
 	}
 	defer stmt.Close()
 
 	for _, c := range chapters {
 		_, err = stmt.Exec(c.ChapterHash, c.ChapterNum, c.ChapterName, c.MangaID, c.Download, c.IsRead)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s: Failed to execute transaction on %v", err, c)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to commit transaction", err)
 	}
 }
 
-func (r *SQLite) InsertManga(m Manga) {
+// Insert the given Manga into the DB
+func (r *SQLite) insertManga(m Manga) {
+	// The Manga table in the DB only has 7 fields, so this is correct.
+	// See directly below for where we insert the tags and chapters.
 	insertStmt := `INSERT INTO Manga values (?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.Exec(insertStmt, m.MangaID, m.SerTitle, m.FullTitle, m.Descr, m.TimeModified, m.Demographic, m.PubStatus)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s: Failed to insert %v", err, m)
 	}
 
-	r.InsertChapters(m.Chapters)
-	r.LinkTags(m.MangaID, m.Tags)
+	r.insertChapters(m.Chapters)
+	r.linkTags(m.MangaID, m.Tags)
 }
 
-// WARNING: YOU SHOULD NOT USE THIS
+// Get a new DB connection.
+// Guarantees that the file you specify will be created
+// the database will be initialized.
 func Opendb(name string) *SQLite {
 	db, err := sql.Open("sqlite3", name)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s: Failed to open %s", err, name)
 	}
 
 	store := NewDb(db)
-	store.Initdb()
+	store.initdb()
 
 	return store
 }
@@ -296,12 +311,12 @@ func SqlTester() {
 
 	store := NewDb(db)
 
-	store.Initdb()
+	store.initdb()
 
 	testt1 := Tag{1, "Romance"}
 	testt2 := Tag{2, "Harem"}
 
-	store.InsertTags([]string{"Romance", "Harem", "Romance"})
+	store.insertTags([]string{"Romance", "Harem", "Romance"})
 
 	testc1 := Chapter{
 		ChapterHash: "598c7824-5822-4ac0-90f5-5439f1f7015e",
@@ -339,7 +354,7 @@ It’s an adorable romantic comedy between a mistress and her servant, featuring
 		PubStatus:    "Ongoing",
 	}
 
-	store.InsertManga(testm1)
+	store.insertManga(testm1)
 
 	testc3 := Chapter{
 		ChapterHash: "362936f9-2456-4120-9bea-b247df21d0bc",
@@ -372,11 +387,8 @@ Due to his natural tendency to assist others (a "helper type" personality that m
 		PubStatus:    "Ongoing",
 	}
 
-	store.InsertManga(testm2)
+	store.insertManga(testm2)
 
-	abb, err := store.GetAll()
-	if err != nil {
-		log.Fatalf("%s: Failed to query db", err)
-	}
+	abb := store.GetAll()
 	fmt.Println(abb)
 }

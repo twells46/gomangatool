@@ -284,6 +284,8 @@ func (r *SQLite) insertManga(m Manga) {
 
 	r.insertChapters(m.Chapters)
 	r.linkTags(m.MangaID, m.Tags)
+
+	log.Printf("Successfully inserted %v", m)
 }
 
 // Get a new DB connection.

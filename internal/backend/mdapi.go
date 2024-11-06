@@ -193,7 +193,7 @@ func NewManga(MangaID string, store *SQLite) {
 		PubStatus:    goodUpper(meta.Data.Attributes.Status),
 	}
 
-	fmt.Printf("%+v\n", m)
+	store.insertManga(m)
 }
 
 func goodUpper(text string) string {

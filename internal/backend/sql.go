@@ -49,6 +49,23 @@ func NewDb(db *sql.DB) *SQLite {
 	return &SQLite{db: db}
 }
 
+func (r *SQLite) tagNamesToTags(names []string) []Tag {
+	tags := make([]Tag, 0)
+	stmt, _ := r.db.Prepare("SELECT TagID, TagTitle FROM Tag WHERE TagTitle = ?")
+
+	for _, v := range names {
+		row := stmt.QueryRow(v)
+		//row := r.db.QueryRow("SELECT TagID, TagTitle FROM Tag WHERE TagTitle = ?", v)
+		var t Tag
+		if err := row.Scan(&t.TagID, &t.TagTitle); err != nil {
+			log.Fatalf("%s: Failed to get tags", err)
+		}
+		tags = append(tags, t)
+	}
+
+	return tags
+}
+
 func (r *SQLite) GetTags(MangaID string) []Tag {
 	query := `
 	SELECT TagID, TagTitle
@@ -125,7 +142,7 @@ func (r *SQLite) GetAll() ([]Manga, error) {
 func (r *SQLite) Initdb() error {
 	create_stmt := `
 	PRAGMA foreign_keys = ON;
-		CREATE TABLE Manga(
+		CREATE TABLE IF NOT EXISTS Manga(
 	    MangaID VARCHAR(64) PRIMARY KEY,
 	    SerTitle VARCHAR(32) NOT NULL UNIQUE,
 	    FullTitle VARCHAR(128) NOT NULL,
@@ -142,7 +159,7 @@ func (r *SQLite) Initdb() error {
 	    TagID INTEGER PRIMARY KEY,
 	    TagTitle VARCHAR(16) UNIQUE
 	);
-	CREATE INDEX TagTitle_idx on Tag(TagTitle);
+	CREATE UNIQUE INDEX IF NOT EXISTS TagTitle_idx on Tag(TagTitle);
 
 	CREATE TABLE IF NOT EXISTS ItemTag (
 	    MangaID VARCHAR(64),
@@ -166,7 +183,7 @@ func (r *SQLite) Initdb() error {
 
 	    FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
 	);
-	CREATE INDEX ChapterMid_idx on Chapter(MangaID);`
+	CREATE INDEX IF NOT EXISTS ChapterMid_idx on Chapter(MangaID);`
 	_, err := r.db.Exec(create_stmt)
 
 	return err
@@ -262,9 +279,11 @@ func Opendb(name string) *SQLite {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
-	return NewDb(db)
+	store := NewDb(db)
+	store.Initdb()
+
+	return store
 }
 
 func SqlTester() {

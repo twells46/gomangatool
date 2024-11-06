@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"time"
+	"unicode/utf8"
 )
 
 type MangaMeta struct {
@@ -170,21 +171,25 @@ func PullMangaMeta(MangaID string) MangaMeta {
 	return m
 }
 
-func NewManga(MangaID string) {
+// Create and store a new manga
+func NewManga(MangaID string, store *SQLite) {
 	meta := PullMangaMeta(MangaID)
 	title, abbrev := parseTitle(&meta)
-	parseTags(&meta)
+	tags := parseTags(&meta, store)
 
 	m := Manga{
-		MangaID:   MangaID,
-		SerTitle:  abbrev,
-		FullTitle: title,
-		Descr:     meta.Data.Attributes.Description.En,
+		MangaID:      MangaID,
+		SerTitle:     abbrev,
+		FullTitle:    title,
+		Descr:        meta.Data.Attributes.Description.En,
+		TimeModified: time.Unix(0, 0),
+		Tags:         tags,
 	}
 
-	fmt.Println(m)
+	fmt.Printf("%+v\n", m)
 }
 
+// Choose the title and abbreviated title to use for the series
 func parseTitle(meta *MangaMeta) (string, string) {
 	titleOptions := []string{meta.Data.Attributes.Title.En}
 	for _, v := range meta.Data.Attributes.AltTitles {
@@ -212,11 +217,20 @@ func parseTitle(meta *MangaMeta) (string, string) {
 	return titleOptions[n], abbrev
 }
 
-func parseTags(meta *MangaMeta) []Tag {
-	tagNames := make([]string, 2)
+// Parse the given tags, guarantee they are in the DB,
+// then return them in the Tag struct
+func parseTags(meta *MangaMeta, store *SQLite) []Tag {
+	tagNames := make([]string, 0)
+
 	for _, v := range meta.Data.Attributes.Tags {
-		tagNames = append(tagNames, v.Attributes.Name.En)
+		t := v.Attributes.Name.En
+
+		// This is probably not necessary, but I'm paranoid now
+		if utf8.RuneCountInString(t) > 0 {
+			tagNames = append(tagNames, t)
+		}
 	}
 
-	return nil
+	store.InsertTags(tagNames)
+	return store.tagNamesToTags(tagNames)
 }

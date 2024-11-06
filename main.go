@@ -12,6 +12,7 @@ func main() {
 		fmt.Println(feed)
 	*/
 
+	store := backend.Opendb("manga.sqlite3")
 	//backend.SqlTester()
-	backend.NewManga("ee51d8fb-ba27-46a5-b204-d565ea1b11aa")
+	backend.NewManga("ee51d8fb-ba27-46a5-b204-d565ea1b11aa", store)
 }

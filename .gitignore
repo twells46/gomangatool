@@ -1,4 +1,4 @@
 gomangatool
 *.csv
 *.db
-*.sqlite
+*.sqlite*

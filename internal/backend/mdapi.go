@@ -194,9 +194,6 @@ func NewManga(MangaID string, store *SQLite) {
 
 func goodUpper(text string) string {
 	r, size := utf8.DecodeRuneInString(text)
-	if r == utf8.RuneError {
-		// handle error
-	}
 	return string(unicode.ToUpper(r)) + text[size:]
 }
 

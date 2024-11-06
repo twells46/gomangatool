@@ -138,12 +138,12 @@ func (r *SQLite) Initdb() error {
 	    CHECK (PubStatus IN ('Ongoing', 'Completed', 'Hiatus', 'Cancelled'))
     );
 
-	CREATE TABLE Tag (
+	CREATE TABLE IF NOT EXISTS Tag (
 	    TagID INTEGER PRIMARY KEY,
-	    TagTitle VARCHAR(16)
+	    TagTitle VARCHAR(16) UNIQUE
 	);
 
-	CREATE TABLE ItemTag (
+	CREATE TABLE IF NOT EXISTS ItemTag (
 	    MangaID VARCHAR(64),
 	    TagID INTEGER,
 
@@ -155,7 +155,7 @@ func (r *SQLite) Initdb() error {
 	        ON DELETE CASCADE
 	);
 
-	CREATE TABLE Chapter (
+	CREATE TABLE IF NOT EXISTS Chapter (
 	    ChapterHash VARCHAR(64) PRIMARY KEY,
 	    ChapterNum REAL,
 	    ChapterName VARCHAR(32),
@@ -171,19 +171,19 @@ func (r *SQLite) Initdb() error {
 	return err
 }
 
-func (r *SQLite) InsertTags(tags []Tag) {
+func (r *SQLite) InsertTags(names []string) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		log.Fatal(err)
 	}
-	stmt, err := tx.Prepare("INSERT INTO Tag values (?, ?)")
+	stmt, err := tx.Prepare("INSERT OR REPLACE INTO Tag (TagTitle) values (?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
 
-	for _, t := range tags {
-		_, err = stmt.Exec(t.TagID, t.TagTitle)
+	for _, name := range names {
+		_, err = stmt.Exec(name)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -269,7 +269,7 @@ func SqlTester() {
 	testt1 := Tag{1, "Romance"}
 	testt2 := Tag{2, "Harem"}
 
-	store.InsertTags([]Tag{testt1, testt2})
+	store.InsertTags([]string{"Romance", "Harem"})
 
 	testc1 := Chapter{
 		ChapterHash: "598c7824-5822-4ac0-90f5-5439f1f7015e",

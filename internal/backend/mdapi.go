@@ -32,7 +32,7 @@ type MangaMeta struct {
 			PublicationDemographic string `json:"publicationDemographic"`
 			Status                 string `json:"status"`
 			Tags                   []struct {
-				ID string `json:"id"`
+				//ID string `json:"id"`
 				//Type       string `json:"type"`
 				Attributes struct {
 					Name struct {
@@ -210,3 +210,12 @@ func parseTitle(meta *MangaMeta) (string, string) {
 	fmt.Scanln(&abbrev)
 	return titleOptions[n], abbrev
 }
+
+/*
+func parseTags(meta *MangaMeta) []Tag {
+	for i, v := range meta.Data.Attributes.Tags {
+		name := v.Attributes.Name
+	}
+	return nil
+}
+*/

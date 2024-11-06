@@ -14,7 +14,7 @@ CREATE TABLE Manga(
 
 CREATE TABLE Tag (
     TagID INTEGER PRIMARY KEY,
-    TagTitle VARCHAR(16)
+    TagTitle VARCHAR(16) UNIQUE
 );
 
 -- Using the extra table for tagging doesn't save enough space to be worthwhile

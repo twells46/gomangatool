@@ -155,7 +155,7 @@ func GetFeed(seriesID string, offset int) SeriesFeed {
 }
 
 // Retrieve and parse the metadata for this given series from the series' ID.
-func pullMangaMeta(MangaID string) MangaMeta {
+func PullMangaMeta(MangaID string) MangaMeta {
 	url := fmt.Sprintf("https://api.mangadex.org/manga/%s", MangaID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -177,7 +177,7 @@ func pullMangaMeta(MangaID string) MangaMeta {
 // This does not do anything with feeds or getting the chapters,
 // it only gets the series info.
 func NewManga(MangaID string, store *SQLite) {
-	meta := pullMangaMeta(MangaID)
+	meta := PullMangaMeta(MangaID)
 	title, abbrev := parseTitle(&meta)
 	tags := parseTags(&meta, store)
 

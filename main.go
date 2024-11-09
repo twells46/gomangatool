@@ -4,20 +4,30 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/twells46/gomangatool/internal/backend"
 )
 
 type (
 	errMsg error
+	tOpt   string
 )
+
+func (t tOpt) FilterValue() string { return string(t) }
+func (t tOpt) Title() string       { return string(t) }
+func (t tOpt) Description() string { return "" }
 
 type model struct {
 	textinput textinput.Model
 	seriesID  string
+	fullTitle string
+	list      list.Model
 	err       error
 	stage     int
+	fetched   bool
 	quitting  bool // NOTE: Currently unused
 }
 
@@ -29,11 +39,18 @@ func initModel() model {
 	ti.CharLimit = 64
 	ti.Width = 64
 
+	d := list.NewDefaultDelegate()
+	d.ShowDescription = false
+	l := list.New([]list.Item{}, d, 80, 20)
+	l.Title = "Choose a title:"
+
 	return model{
 		textinput: ti,
+		list:      l,
 		err:       nil,
 		stage:     0,
-		quitting:  false,
+		fetched:   false,
+		quitting:  false, // NOTE: Currently unused
 	}
 }
 
@@ -45,6 +62,10 @@ func (m model) Init() tea.Cmd {
 // then passes off to the appropriate sub-function
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetWidth(msg.Width)
+		m.list.SetHeight(msg.Height)
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc, tea.KeyCtrlC:
@@ -54,10 +75,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.stage == 0 {
 		return UpdateIDInput(msg, m)
-	}
-
-	if m.stage == 1 {
+	} else if m.stage == 1 {
 		return UpdateChooser(msg, m)
+	} else if m.stage == 2 {
+		return UpdateAbbrevInput(msg, m)
 	}
 
 	return m, tea.Quit
@@ -70,7 +91,7 @@ func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			m.seriesID = m.textinput.Value()
-			m.stage++
+			m.stage = 1 // Move to title choices list
 			return m, nil
 		}
 
@@ -85,6 +106,31 @@ func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // Update function for choosing the title (stage 1)
 func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case []list.Item:
+		m.list.SetItems(msg)
+		m.fetched = true
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			if val, ok := m.list.SelectedItem().(tOpt); ok {
+				m.fullTitle = string(val)
+				m.stage = 2 // Move to abbreviation input form
+			}
+			return m, nil
+		}
+	}
+	if !m.fetched {
+		return m, getMeta(m.seriesID)
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+// View function for abbreviated title input (stage 2)
+func UpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	panic("unimplemented")
 }
 
@@ -94,6 +140,8 @@ func (m model) View() string {
 		return ViewIDInput(m)
 	} else if m.stage == 1 {
 		return ViewChooser(m)
+	} else if m.stage == 2 {
+		return ViewAbbrevInput(m)
 	}
 
 	return "\n\nSomething went wrong...\n\n"
@@ -104,8 +152,34 @@ func ViewIDInput(m model) string {
 	return fmt.Sprintf("Input the ID: %s", m.textinput.View())
 }
 
+// View function for title chooser (stage 1)
 func ViewChooser(m model) string {
-	return "\n\nUNDER CONSTRUCTION\n\n"
+	if !m.fetched {
+		return "Querying Mangadex..."
+	}
+	return m.list.View()
+}
+
+// View function for abbreviated title input (stage 2)
+func ViewAbbrevInput(m model) string {
+	return fmt.Sprintf("\n\nUNDER CONSTRUCTION\n\n")
+}
+
+func getMeta(MangaID string) tea.Cmd {
+	return func() tea.Msg {
+		meta := backend.PullMangaMeta(MangaID)
+		titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
+		for _, v := range meta.Data.Attributes.AltTitles {
+			if len(v.En) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.En))
+			} else if len(v.Ja) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.Ja))
+			} else if len(v.JaRo) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.JaRo))
+			}
+		}
+		return titleOptions
+	}
 }
 
 func main() {

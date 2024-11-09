@@ -7,67 +7,115 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/twells46/gomangatool/internal/backend"
 )
 
 type (
 	errMsg error
 )
 
-var seriesID string
-
-type inputIDModel struct {
+type model struct {
 	textinput textinput.Model
+	seriesID  string
 	err       error
+	stage     int
+	quitting  bool // NOTE: Currently unused
 }
 
-func InitInputIDModel() inputIDModel {
+// Initialize a new model
+func initModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	ti.Focus()
 	ti.CharLimit = 64
 	ti.Width = 64
 
-	return inputIDModel{
+	return model{
 		textinput: ti,
 		err:       nil,
+		stage:     0,
+		quitting:  false,
 	}
 }
-func (m inputIDModel) Init() tea.Cmd {
+
+func (m model) Init() tea.Cmd {
 	return nil
 }
 
-func (m inputIDModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Main update function, which handles universal quit keys
+// then passes off to the appropriate sub-function
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC:
-			seriesID = m.textinput.Value()
+		case tea.KeyEsc, tea.KeyCtrlC:
 			return m, tea.Quit
+		}
+	}
+
+	if m.stage == 0 {
+		return UpdateIDInput(msg, m)
+	}
+
+	if m.stage == 1 {
+		return UpdateChooser(msg, m)
+	}
+
+	return m, tea.Quit
+}
+
+// Update function for the inputting the manga ID (stage 0)
+func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.seriesID = m.textinput.Value()
+			m.stage++
+			return m, nil
 		}
 
 	case errMsg:
 		m.err = msg
 		return m, nil
 	}
-
 	var cmd tea.Cmd
 	m.textinput, cmd = m.textinput.Update(msg)
 	return m, cmd
 }
 
-func (m inputIDModel) View() string {
+// Update function for choosing the title (stage 1)
+func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	panic("unimplemented")
+}
+
+// Main view function, which calls the correct sub-function
+func (m model) View() string {
+	if m.stage == 0 {
+		return ViewIDInput(m)
+	} else if m.stage == 1 {
+		return ViewChooser(m)
+	}
+
+	return "\n\nSomething went wrong...\n\n"
+}
+
+// View function for ID input (stage 0)
+func ViewIDInput(m model) string {
 	return fmt.Sprintf("Input the ID: %s", m.textinput.View())
 }
 
+func ViewChooser(m model) string {
+	return "\n\nUNDER CONSTRUCTION\n\n"
+}
+
 func main() {
-	p := tea.NewProgram(InitInputIDModel())
+	p := tea.NewProgram(initModel())
 	if _, err := p.Run(); err != nil {
 		log.Fatalln(err)
 	}
 
-	store := backend.Opendb("manga.sqlite3")
-	backend.NewManga(seriesID, store)
+	//store := backend.Opendb("manga.sqlite3")
+	//backend.NewManga(seriesID, store)
 	/*
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 		md.DlChapter(`362936f9-2456-4120-9bea-b247df21d0bc`)

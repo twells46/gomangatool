@@ -2,3 +2,4 @@ gomangatool
 *.csv
 *.db
 *.sqlite*
+*.log

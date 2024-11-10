@@ -156,7 +156,7 @@ func (r *SQLite) initdb() {
 	    Demographic VARCHAR(7),
 	    PubStatus VARCHAR(9),
 
-	    CHECK (Demographic IN ('Shounen', 'Shoujo', 'Seinen', 'Jousei')),
+	    CHECK (Demographic IN ('Shounen', 'Shoujo', 'Seinen', 'Josei')),
 	    CHECK (PubStatus IN ('Ongoing', 'Completed', 'Hiatus', 'Cancelled'))
     );
 

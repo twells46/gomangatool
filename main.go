@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -10,6 +11,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/twells46/gomangatool/internal/backend"
 )
+
+var meta backend.MangaMeta
 
 type (
 	errMsg error
@@ -21,14 +24,17 @@ func (t tOpt) Title() string       { return string(t) }
 func (t tOpt) Description() string { return "" }
 
 type model struct {
-	textinput textinput.Model
-	seriesID  string
-	fullTitle string
-	list      list.Model
-	err       error
-	stage     int
-	fetched   bool
-	quitting  bool // NOTE: Currently unused
+	textInput        textinput.Model
+	list             list.Model
+	seriesID         string
+	fullTitle        string
+	abbrevTitle      string
+	err              error
+	stage            int
+	fetched          bool
+	textInputUpdated bool
+	store            *backend.SQLite
+	quitting         bool // NOTE: Currently unused
 }
 
 // Initialize a new model
@@ -45,11 +51,12 @@ func initModel() model {
 	l.Title = "Choose a title:"
 
 	return model{
-		textinput: ti,
+		textInput: ti,
 		list:      l,
 		err:       nil,
 		stage:     0,
 		fetched:   false,
+		store:     backend.Opendb("manga.sqlite3"),
 		quitting:  false, // NOTE: Currently unused
 	}
 }
@@ -90,7 +97,7 @@ func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			m.seriesID = m.textinput.Value()
+			m.seriesID = m.textInput.Value()
 			m.stage = 1 // Move to title choices list
 			return m, nil
 		}
@@ -100,7 +107,7 @@ func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	var cmd tea.Cmd
-	m.textinput, cmd = m.textinput.Update(msg)
+	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
 }
 
@@ -121,7 +128,7 @@ func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 	}
 	if !m.fetched {
-		return m, getMeta(m.seriesID)
+		return m, getTitles(m.seriesID)
 	}
 
 	var cmd tea.Cmd
@@ -131,7 +138,33 @@ func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // View function for abbreviated title input (stage 2)
 func UpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	panic("unimplemented")
+	switch msg := msg.(type) {
+	case []list.Item:
+		m.list.SetItems(msg)
+		m.fetched = true
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlLeft:
+			m.stage = 1 // Return to list to choose a new title
+			return m, nil
+
+		case tea.KeyEnter:
+			m.abbrevTitle = m.textInput.Value()
+			backend.NewManga(meta, m.fullTitle, m.abbrevTitle, m.store)
+			return m, tea.Quit
+		}
+	}
+
+	if !m.textInputUpdated {
+		m.textInput.Reset()
+		m.textInput.Placeholder = "abbrev_title"
+		m.textInput.Focus()
+		m.textInputUpdated = true
+	}
+
+	var cmd tea.Cmd
+	m.textInput, cmd = m.textInput.Update(msg)
+	return m, cmd
 }
 
 // Main view function, which calls the correct sub-function
@@ -144,12 +177,12 @@ func (m model) View() string {
 		return ViewAbbrevInput(m)
 	}
 
-	return "\n\nSomething went wrong...\n\n"
+	return "\n\nHow did we get here?\n\n"
 }
 
 // View function for ID input (stage 0)
 func ViewIDInput(m model) string {
-	return fmt.Sprintf("Input the ID: %s", m.textinput.View())
+	return fmt.Sprintf("Input the ID: %s", m.textInput.View())
 }
 
 // View function for title chooser (stage 1)
@@ -162,12 +195,18 @@ func ViewChooser(m model) string {
 
 // View function for abbreviated title input (stage 2)
 func ViewAbbrevInput(m model) string {
-	return fmt.Sprintf("\n\nUNDER CONSTRUCTION\n\n")
+	var view strings.Builder
+	view.WriteString(fmt.Sprintf("\nYour chosen title is:\n'%s'\n", m.fullTitle))
+	if m.textInputUpdated {
+		view.WriteString(fmt.Sprintf("Input the abbreviated title: %s\n\n", m.textInput.View()))
+	}
+	view.WriteString("To go back and choose a different title, press ctrl-leftarrow")
+	return view.String()
 }
 
-func getMeta(MangaID string) tea.Cmd {
+func getTitles(MangaID string) tea.Cmd {
 	return func() tea.Msg {
-		meta := backend.PullMangaMeta(MangaID)
+		meta = backend.PullMangaMeta(MangaID)
 		titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
 		for _, v := range meta.Data.Attributes.AltTitles {
 			if len(v.En) > 0 {
@@ -188,6 +227,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	//fmt.Println(manga)
 	//store := backend.Opendb("manga.sqlite3")
 	//backend.NewManga(seriesID, store)
 	/*

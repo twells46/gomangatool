@@ -176,13 +176,11 @@ func PullMangaMeta(MangaID string) MangaMeta {
 // Create and store a new manga.
 // This does not do anything with feeds or getting the chapters,
 // it only gets the series info.
-func NewManga(MangaID string, store *SQLite) {
-	meta := PullMangaMeta(MangaID)
-	title, abbrev := parseTitle(&meta)
+func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 	tags := parseTags(&meta, store)
 
 	m := Manga{
-		MangaID:      MangaID,
+		MangaID:      meta.Data.ID,
 		SerTitle:     abbrev,
 		FullTitle:    title,
 		Descr:        meta.Data.Attributes.Description.En,
@@ -199,34 +197,6 @@ func NewManga(MangaID string, store *SQLite) {
 func goodUpper(text string) string {
 	r, size := utf8.DecodeRuneInString(text)
 	return string(unicode.ToUpper(r)) + text[size:]
-}
-
-// Choose the title and abbreviated title to use for the series
-func parseTitle(meta *MangaMeta) (string, string) {
-	titleOptions := []string{meta.Data.Attributes.Title.En}
-	for _, v := range meta.Data.Attributes.AltTitles {
-		if len(v.En) > 0 {
-			titleOptions = append(titleOptions, v.En)
-		} else if len(v.Ja) > 0 {
-			titleOptions = append(titleOptions, v.Ja)
-		} else if len(v.JaRo) > 0 {
-			titleOptions = append(titleOptions, v.JaRo)
-		}
-	}
-	var n int
-	fmt.Println("Please choose a title:")
-	for i, v := range titleOptions {
-		fmt.Printf("[%d] %s\n", i, v)
-	}
-
-	fmt.Print("Your choice: ")
-	fmt.Scanln(&n)
-	fmt.Printf("You chose: %s\n", titleOptions[n])
-
-	var abbrev string
-	fmt.Print("What should the abbreviated title be? ")
-	fmt.Scanln(&abbrev)
-	return titleOptions[n], abbrev
 }
 
 // Parse the given tags, guarantee they are in the DB,

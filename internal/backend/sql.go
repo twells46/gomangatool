@@ -95,7 +95,7 @@ func (r *SQLite) getTags(MangaID string) []Tag {
 
 // Get all the chapters for a given manga.
 // Takes ID instead of the full struct for the same reason as getTags.
-func (r *SQLite) getChapters(MangaID string) []Chapter {
+func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	query := `
 	SELECT *
 	FROM Chapter
@@ -135,7 +135,7 @@ func (r *SQLite) GetAll() []Manga {
 		if err != nil {
 			log.Fatalf("%s: Failed to parse manga", err)
 		}
-		m.Chapters = r.getChapters(m.MangaID)
+		m.Chapters = r.GetChapters(m.MangaID)
 		m.Tags = r.getTags(m.MangaID)
 		all = append(all, m)
 	}
@@ -288,9 +288,20 @@ func (r *SQLite) insertManga(m Manga) {
 	log.Printf("Successfully inserted %v", m)
 }
 
+func (r *SQLite) UpdateAtime(m Manga) Manga {
+	m.TimeModified = time.Now()
+	updateStmt := "UPDATE Manga SET TimeModified = ?"
+	_, err := r.db.Exec(updateStmt, m.TimeModified)
+	if err != nil {
+		log.Fatalf("%s: Failed to update access time %v", err, m)
+	}
+
+	return m
+}
+
 // Get a new DB connection.
 // Guarantees that the file you specify will be created
-// the database will be initialized.
+// and the database will be initialized.
 func Opendb(name string) *SQLite {
 	db, err := sql.Open("sqlite3", name)
 	if err != nil {

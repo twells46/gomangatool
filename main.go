@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -29,10 +28,10 @@ type model struct {
 	seriesID         string
 	fullTitle        string
 	abbrevTitle      string
-	err              error
+	err              error // NOTE: Currently unused
 	stage            int
-	fetched          bool
-	textInputUpdated bool
+	fetched          bool // For stage 1: have the titles been fetched?
+	textInputUpdated bool // For stage 2: has textInput been cleared and updated?
 	store            *backend.SQLite
 	quitting         bool // NOTE: Currently unused
 }
@@ -57,7 +56,6 @@ func initModel() model {
 		stage:     0,
 		fetched:   false,
 		store:     backend.Opendb("manga.sqlite3"),
-		quitting:  false, // NOTE: Currently unused
 	}
 }
 
@@ -114,9 +112,6 @@ func UpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 // Update function for choosing the title (stage 1)
 func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case []list.Item:
-		m.list.SetItems(msg)
-		m.fetched = true
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
@@ -126,6 +121,9 @@ func UpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+	case []list.Item:
+		m.list.SetItems(msg)
+		m.fetched = true
 	}
 	if !m.fetched {
 		return m, getTitles(m.seriesID)
@@ -204,6 +202,9 @@ func ViewAbbrevInput(m model) string {
 	return view.String()
 }
 
+// Get the titles and put them into a slice of []list.Item
+// The title chooser update function is "listening" for this
+// type of tea.Msg message and adds them to the view.
 func getTitles(MangaID string) tea.Cmd {
 	return func() tea.Msg {
 		meta = backend.PullMangaMeta(MangaID)
@@ -222,10 +223,16 @@ func getTitles(MangaID string) tea.Cmd {
 }
 
 func main() {
-	p := tea.NewProgram(initModel())
-	if _, err := p.Run(); err != nil {
-		log.Fatalln(err)
-	}
+	//p := tea.NewProgram(initModel())
+	//if _, err := p.Run(); err != nil {
+	//	log.Fatalln(err)
+	//}
+
+	store := backend.Opendb("manga.sqlite3")
+	tester := store.GetAll()
+	backend.RefreshFeed(tester[0], store)
+
+	//fmt.Println(store.GetChapters(tester[0].MangaID))
 
 	//fmt.Println(manga)
 	//store := backend.Opendb("manga.sqlite3")

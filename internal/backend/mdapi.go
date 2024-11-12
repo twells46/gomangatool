@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -55,19 +56,23 @@ type chapterMeta struct {
 	} `json:"chapter"`
 }
 
+type FeedChData struct {
+	ID string `json:"id"`
+	//Type       string `json:"type"`
+	Attributes struct {
+		Title   string `json:"title"`
+		Volume  string `json:"volume"`
+		Chapter string `json:"chapter"`
+	} `json:"attributes"`
+}
+
 type SeriesFeed struct {
-	Result   string `json:"result"`
-	Response string `json:"response"`
-	Data     []struct {
-		ID         string `json:"id"`
-		Attributes struct {
-			Volume  string `json:"volume"`
-			Chapter string `json:"chapter"`
-		} `json:"attributes"`
-	} `json:"data"`
-	Limit  int `json:"limit"`
-	Offset int `json:"offset"`
-	Total  int `json:"total"`
+	Result   string       `json:"result"`
+	Response string       `json:"response"`
+	Data     []FeedChData `json:"data"`
+	Limit    int          `json:"limit"`
+	Offset   int          `json:"offset"`
+	Total    int          `json:"total"`
 }
 
 // Download a chapter given the chapter's ID
@@ -128,30 +133,6 @@ func dlPage(pageURL string, f *os.File) {
 	if _, err := io.Copy(f, img.Body); err != nil {
 		log.Fatalf("%s: Failed to write to file %s", err, f.Name())
 	}
-}
-
-// Pull the feed for a series
-func GetFeed(seriesID string, offset int) SeriesFeed {
-	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", seriesID)
-	params := url.Values{}
-	params.Add("translatedLanguage[]", "en")
-	params.Add("includeExternalUrl", "0")
-	params.Add("offset", fmt.Sprint(offset))
-	fullURL := fmt.Sprintf("%s?%s", feedURL, params.Encode())
-
-	feedResp, err := http.Get(fullURL)
-	if err != nil {
-		log.Fatalf("%s: Failed to retrieve feed %s", err, fullURL)
-	}
-	defer feedResp.Body.Close()
-
-	dec := json.NewDecoder(feedResp.Body)
-	var m SeriesFeed
-	if err := dec.Decode(&m); err != nil {
-		log.Fatalf("%s: Failed to decode response from %s", err, fullURL)
-	}
-
-	return m
 }
 
 // Retrieve and parse the metadata for this given series from the series' ID.
@@ -215,4 +196,78 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 
 	store.insertTags(tagNames)
 	return store.tagNamesToTags(tagNames)
+}
+
+// Pull the feed, add the chapters to the DB
+// Downloading will come from a SQL query of undownloaded chapters
+// TODO: Update manga.TimeModified
+func RefreshFeed(manga Manga, store *SQLite) Manga {
+	offset := 0
+	feed := PullFeedMeta(manga.MangaID, offset, manga.TimeModified)
+
+	chapters := make([]Chapter, 0)
+	for feed.Offset < feed.Total {
+		pageChapters := parseChData(feed.Data, manga.MangaID)
+		chapters = append(chapters, pageChapters...)
+		offset += 50
+		feed = PullFeedMeta(manga.MangaID, offset, manga.TimeModified)
+	}
+
+	store.insertChapters(chapters)
+	manga = store.UpdateAtime(manga)
+	return manga
+}
+
+// Handles all the ugly stuff of parsing the chapters from the API response
+func parseChData(data []FeedChData, mangaID string) []Chapter {
+	chapters := make([]Chapter, 0)
+	for _, d := range data {
+		chNum, err := strconv.ParseFloat(d.Attributes.Chapter, 64)
+		var title string
+		if d.Attributes.Title == "" {
+			title = fmt.Sprintf("Ch. %s", d.Attributes.Chapter)
+		} else {
+			title = d.Attributes.Title
+		}
+		if err != nil {
+			log.Fatalf("%s: Failed to parse float from %s", err, d.Attributes.Chapter)
+		}
+		c := Chapter{
+			ChapterHash: d.ID,
+			ChapterNum:  chNum,
+			ChapterName: title,
+			MangaID:     mangaID,
+			Download:    false,
+			IsRead:      false,
+		}
+		chapters = append(chapters, c)
+	}
+
+	return chapters
+}
+
+// Pull and decode the feed for a series
+func PullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed {
+	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", mangaID)
+	params := url.Values{}
+	params.Add("translatedLanguage[]", "en")
+	params.Add("includeExternalUrl", "0")
+	params.Add("offset", fmt.Sprint(offset))
+	params.Add("publishAtSince", lastUpdated.Format("2006-01-02T15:04:05"))
+	params.Add("limit", "50")
+	fullURL := fmt.Sprintf("%s?%s", feedURL, params.Encode())
+
+	feedResp, err := http.Get(fullURL)
+	if err != nil {
+		log.Fatalf("%s: Failed to retrieve feed %s", err, fullURL)
+	}
+	defer feedResp.Body.Close()
+
+	dec := json.NewDecoder(feedResp.Body)
+	var m SeriesFeed
+	if err := dec.Decode(&m); err != nil {
+		log.Fatalf("%s: Failed to decode response from %s", err, fullURL)
+	}
+
+	return m
 }

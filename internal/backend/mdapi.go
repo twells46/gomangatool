@@ -159,6 +159,12 @@ func PullMangaMeta(MangaID string) MangaMeta {
 // it only gets the series info.
 func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 	tags := parseTags(&meta, store)
+	var demo string
+	if meta.Data.Attributes.PublicationDemographic == "" {
+		demo = "Unknown"
+	} else {
+		demo = meta.Data.Attributes.PublicationDemographic
+	}
 
 	m := Manga{
 		MangaID:      meta.Data.ID,
@@ -168,7 +174,7 @@ func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 		TimeModified: time.Unix(0, 0),
 		Tags:         tags,
 		Chapters:     []Chapter{},
-		Demographic:  goodUpper(meta.Data.Attributes.PublicationDemographic),
+		Demographic:  goodUpper(demo),
 		PubStatus:    goodUpper(meta.Data.Attributes.Status),
 	}
 

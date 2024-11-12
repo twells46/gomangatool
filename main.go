@@ -4,7 +4,6 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	//_ "github.com/mattn/go-sqlite3"
 	"github.com/twells46/gomangatool/internal/frontend"
 )
 

@@ -27,3 +27,23 @@ Note: Should include chosen full title for reference
 ??
 7. Combine to a Manga struct
 8. Store in DB
+
+
+Next task: the main gui.
+Should be a list that displays the manga in your library.
+When you select a series, you can then look through the chapters in that series.
+That means implementing list.Item for both Chapter and Manga.
+Also want keybind to refresh series.
+Have 'a' keybind to add series.
+
+The overall view should show the title, tags, and a snippet of the description.
+Also maybe update time?
+Should the tags and demographic and other filter stuff be part of the builtin filter for lists?
+Probably not.
+
+Have a seperate thing with a couple of lists to filter series.
+
+The individual series view should show the title, tags, full description, update time.
+Has the list of chapters below.
+
+Still not sure about how I want the code organized.

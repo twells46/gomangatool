@@ -15,6 +15,7 @@ const (
 type model struct {
 	view     int
 	adder    Adder
+	allView  AllView
 	err      error // NOTE: Currently unused
 	store    *backend.SQLite
 	quitting bool // NOTE: Currently unused
@@ -25,9 +26,10 @@ func InitModel() model {
 	store := backend.Opendb("manga.sqlite3")
 
 	return model{
-		view:  adder,
-		adder: initAdder(),
-		store: store,
+		view:    all,
+		adder:   initAdder(),
+		allView: initAllView(store),
+		store:   store,
 	}
 }
 
@@ -51,6 +53,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
+	case all:
+		return AllViewUpdate(msg, m)
 	case adder:
 		switch m.adder.stage {
 		case 0:
@@ -68,6 +72,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // Main view function, which calls the correct sub-function
 func (m model) View() string {
 	switch m.view {
+	case all:
+		return AllViewView(m)
 	case adder:
 		switch m.adder.stage {
 		case 0:

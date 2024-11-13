@@ -2,6 +2,7 @@ package backend
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -33,6 +34,10 @@ type Manga struct {
 	Demographic  string
 	PubStatus    string
 }
+
+func (m Manga) FilterValue() string { return m.FullTitle + m.SerTitle }
+func (m Manga) Title() string       { return fmt.Sprintf("%s (%s)", m.FullTitle, m.SerTitle) }
+func (m Manga) Description() string { return m.Descr }
 
 // Store the sql connection.
 // Need a custom struct to define custom methods

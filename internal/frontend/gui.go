@@ -1,8 +1,6 @@
 package frontend
 
 import (
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/twells46/gomangatool/internal/backend"
 )
@@ -24,28 +22,12 @@ type model struct {
 
 // Initialize a new model
 func InitModel() model {
-	ti := textinput.New()
-	ti.Placeholder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-	ti.Focus()
-	ti.CharLimit = 64
-	ti.Width = 64
-
-	d := list.NewDefaultDelegate()
-	d.ShowDescription = false
-	l := list.New([]list.Item{}, d, 80, 20)
-	l.Title = "Choose a title:"
+	store := backend.Opendb("manga.sqlite3")
 
 	return model{
-		view: adder,
-		adder: Adder{
-			textInput:        ti,
-			list:             l,
-			err:              nil,
-			stage:            0,
-			fetched:          false,
-			textInputUpdated: false,
-		},
-		store: backend.Opendb("manga.sqlite3"),
+		view:  adder,
+		adder: initAdder(),
+		store: store,
 	}
 }
 

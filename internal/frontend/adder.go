@@ -16,11 +16,26 @@ type Adder struct {
 	seriesID         string
 	fullTitle        string
 	abbrevTitle      string
-	err              error // NOTE: Currently unused
-	stage            int   // Since theres only 3 I don't define a const for this
-	fetched          bool  // For stage 1: have the titles been fetched?
-	textInputUpdated bool  // For stage 2: has textInput been cleared and updated?
-	quitting         bool  // NOTE: Currently unused
+	stage            int  // Since theres only 3 stages I don't define a const for this
+	fetched          bool // For stage 1: have the titles been fetched?
+	textInputUpdated bool // For stage 2: has textInput been cleared and updated?
+}
+
+func initAdder() Adder {
+	ti := textinput.New()
+	ti.Placeholder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	ti.Focus()
+	ti.CharLimit = 64
+	ti.Width = 64
+
+	d := list.NewDefaultDelegate()
+	d.ShowDescription = false
+	l := list.New([]list.Item{}, d, 80, 20)
+	l.Title = "Choose a title:"
+	return Adder{
+		textInput: ti,
+		list:      l,
+	}
 }
 
 type (
@@ -46,7 +61,7 @@ func AdderUpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 
 	case errMsg:
-		m.adder.err = msg
+		m.err = msg
 		return m, nil
 	}
 	var cmd tea.Cmd

@@ -9,6 +9,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Review struct {
+	MangaID string
+	Rating  int
+	Rev     string
+}
+
 type Tag struct {
 	TagID    int
 	TagTitle string
@@ -33,6 +39,7 @@ type Manga struct {
 	Chapters     []Chapter
 	Demographic  string
 	PubStatus    string
+	Review       Review
 }
 
 func (m Manga) FilterValue() string { return m.FullTitle + m.SerTitle }
@@ -124,6 +131,20 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	return all
 }
 
+func (r *SQLite) GetReview(MangaID string) Review {
+	row := r.db.QueryRow("SELECT * FROM Review WHERE MangaID = ?", MangaID)
+
+	var rev Review
+	err := row.Scan(&rev.MangaID, &rev.Rating, &rev.Rev)
+	if err == sql.ErrNoRows {
+		return Review{}
+	} else if err != nil {
+		log.Fatalf("%s: Failed to query db for revew for id %s", err, MangaID)
+	}
+
+	return rev
+}
+
 // Get a Manga from the DB
 func (r *SQLite) GetByID(mangaID string) Manga {
 	row := r.db.QueryRow("SELECT * FROM Manga WHERE MangaID = ?", mangaID)
@@ -134,6 +155,7 @@ func (r *SQLite) GetByID(mangaID string) Manga {
 	}
 	m.Chapters = r.GetChapters(m.MangaID)
 	m.Tags = r.getTags(m.MangaID)
+	m.Review = r.GetReview(m.MangaID)
 
 	return m
 }
@@ -156,6 +178,7 @@ func (r *SQLite) GetAll() []Manga {
 		}
 		m.Chapters = r.GetChapters(m.MangaID)
 		m.Tags = r.getTags(m.MangaID)
+		m.Review = r.GetReview(m.MangaID)
 		all = append(all, m)
 	}
 
@@ -207,7 +230,18 @@ func (r *SQLite) initdb() {
 
 	    FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
 	);
-	CREATE INDEX IF NOT EXISTS ChapterMid_idx on Chapter(MangaID);`
+	CREATE INDEX IF NOT EXISTS ChapterMid_idx on Chapter(MangaID);
+
+	CREATE TABLE IF NOT EXISTS Review (
+		MangaID VARCHAR(64) PRIMARY KEY,
+		Rating INTEGER,
+		Rev VARCHAR(5120),
+
+		FOREIGN KEY (MangaID) REFERENCES Manga(MangaID),
+		CHECK (
+			Rating BETWEEN 0 AND 100
+		)
+	);`
 
 	_, err := r.db.Exec(create_stmt)
 	if err != nil {
@@ -304,7 +338,15 @@ func (r *SQLite) insertManga(m Manga) {
 	r.insertChapters(m.Chapters)
 	r.linkTags(m.MangaID, m.Tags)
 
-	log.Printf("Successfully inserted %v", m)
+	//log.Printf("Successfully inserted %v", m)
+}
+
+func (r *SQLite) insertReview(rev Review) {
+	insertStmt := "INSERT INTO Review VALUES (?, ?, ?)"
+	_, err := r.db.Exec(insertStmt, rev.MangaID, rev.Rating, rev.Rev)
+	if err != nil {
+		log.Fatalf("%s: Failed to insert %v", err, rev)
+	}
 }
 
 func (r *SQLite) UpdateAtime(m Manga) Manga {

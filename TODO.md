@@ -52,3 +52,7 @@ I want to move to having the main gui.go file call a single view and update func
 i.e. One update function for adder, one for all, one for series.
 Then those can call more subviews as necessary.
 This will allow me to have shared keybinds and UI elements between them more easily.
+
+Change the styles based on new chapters
+
+Add review mechanism

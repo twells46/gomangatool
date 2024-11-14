@@ -15,7 +15,7 @@ const (
 type model struct {
 	view     int
 	adder    Adder
-	allView  AllView
+	library  Library
 	err      error // NOTE: Currently unused
 	store    *backend.SQLite
 	quitting bool // NOTE: Currently unused
@@ -28,7 +28,7 @@ func InitModel() model {
 	return model{
 		view:    all,
 		adder:   initAdder(),
-		allView: initAllView(store),
+		library: initLibrary(store),
 		store:   store,
 	}
 }
@@ -54,7 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.view {
 	case all:
-		return AllViewUpdate(msg, m)
+		return LibraryUpdate(msg, m)
 	case adder:
 		return AdderUpdate(msg, m)
 	}
@@ -66,7 +66,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	switch m.view {
 	case all:
-		return AllViewView(m)
+		return LibraryView(m)
 	case adder:
 		return AdderView(m)
 	}

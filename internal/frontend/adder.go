@@ -142,7 +142,7 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			m.adder.abbrevTitle = m.adder.textInput.Value()
 			backend.NewManga(meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
-			m.allView.toAddID = m.adder.seriesID
+			m.library.toAddID = m.adder.seriesID
 			return adderExit(m), nil
 		}
 	}

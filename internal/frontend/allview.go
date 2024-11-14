@@ -7,7 +7,8 @@ import (
 )
 
 type AllView struct {
-	list list.Model
+	list    list.Model
+	toAddID string
 }
 
 func initAllView(store *backend.SQLite) AllView {
@@ -20,7 +21,7 @@ func initAllView(store *backend.SQLite) AllView {
 	list := list.New(items, d, 80, 25)
 	list.Title = "Choose a title:"
 
-	return AllView{list}
+	return AllView{list, ""}
 }
 
 func AllViewUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
@@ -32,6 +33,10 @@ func AllViewUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.allView.toAddID != "" {
+		return updateAfterAdd(m), nil
+	}
+
 	var cmd tea.Cmd
 	m.allView.list, cmd = m.allView.list.Update(msg)
 	return m, cmd
@@ -39,4 +44,11 @@ func AllViewUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 func AllViewView(m model) string {
 	return m.allView.list.View()
+}
+
+func updateAfterAdd(m model) model {
+	new := m.store.GetByID(m.allView.toAddID)
+	m.allView.list.InsertItem(2147483647, list.Item(new))
+	m.allView.toAddID = ""
+	return m
 }

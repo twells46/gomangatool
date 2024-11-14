@@ -124,6 +124,20 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	return all
 }
 
+// Get a Manga from the DB
+func (r *SQLite) GetByID(mangaID string) Manga {
+	row := r.db.QueryRow("SELECT * FROM Manga WHERE MangaID = ?", mangaID)
+	var m Manga
+	err := row.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified, &m.Demographic, &m.PubStatus)
+	if err != nil {
+		log.Fatalf("%s: Failed to query db for manga", err)
+	}
+	m.Chapters = r.GetChapters(m.MangaID)
+	m.Tags = r.getTags(m.MangaID)
+
+	return m
+}
+
 // Get all the Manga from the DB, complete with tags and chapters.
 func (r *SQLite) GetAll() []Manga {
 	rows, err := r.db.Query("SELECT * FROM Manga")

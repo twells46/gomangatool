@@ -47,7 +47,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEsc, tea.KeyCtrlC:
+		case tea.KeyCtrlC:
 			return m, tea.Quit
 		}
 	}
@@ -56,14 +56,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case all:
 		return AllViewUpdate(msg, m)
 	case adder:
-		switch m.adder.stage {
-		case 0:
-			return AdderUpdateIDInput(msg, m)
-		case 1:
-			return AdderUpdateChooser(msg, m)
-		case 2:
-			return AdderUpdateAbbrevInput(msg, m)
-		}
+		return AdderUpdate(msg, m)
 	}
 
 	return m, tea.Quit
@@ -75,14 +68,7 @@ func (m model) View() string {
 	case all:
 		return AllViewView(m)
 	case adder:
-		switch m.adder.stage {
-		case 0:
-			return AdderViewIDInput(m)
-		case 1:
-			return AdderViewChooser(m)
-		case 2:
-			return AdderViewAbbrevInput(m)
-		}
+		return AdderView(m)
 	}
 
 	return "\n\nHow did we get here?\n\n"

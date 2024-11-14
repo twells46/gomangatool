@@ -47,3 +47,8 @@ The individual series view should show the title, tags, full description, update
 Has the list of chapters below.
 
 Still not sure about how I want the code organized.
+
+I want to move to having the main gui.go file call a single view and update function per "thing".
+i.e. One update function for adder, one for all, one for series.
+Then those can call more subviews as necessary.
+This will allow me to have shared keybinds and UI elements between them more easily.

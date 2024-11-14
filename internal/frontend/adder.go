@@ -49,11 +49,44 @@ func (t tOpt) FilterValue() string { return string(t) }
 func (t tOpt) Title() string       { return string(t) }
 func (t tOpt) Description() string { return "" }
 
+func AdderUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			m.adder.stage = 0
+			m.view = all
+		}
+	}
+
+	switch m.adder.stage {
+	case 0:
+		return AdderUpdateIDInput(msg, m)
+	case 1:
+		return AdderUpdateChooser(msg, m)
+	case 2:
+		return AdderUpdateAbbrevInput(msg, m)
+	default:
+		return m, nil
+	}
+}
+
+func adderExit(m model) model {
+	m.adder.list.SetItems([]list.Item{})
+	m.adder.textInput.Reset()
+	m.adder.stage = 0
+	m.view = all
+	return m
+}
+
 // Update function for the inputting the manga ID (stage 0)
 func AdderUpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyEsc:
+			return adderExit(m), nil
+
 		case tea.KeyEnter:
 			m.adder.seriesID = m.adder.textInput.Value()
 			m.adder.stage = 1 // Move to title choices list
@@ -109,7 +142,8 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			m.adder.abbrevTitle = m.adder.textInput.Value()
 			backend.NewManga(meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
-			return m, tea.Quit
+			m.allView.toAddID = m.adder.seriesID
+			return adderExit(m), nil
 		}
 	}
 
@@ -123,6 +157,19 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.adder.textInput, cmd = m.adder.textInput.Update(msg)
 	return m, cmd
+}
+
+func AdderView(m model) string {
+	switch m.adder.stage {
+	case 0:
+		return AdderViewIDInput(m)
+	case 1:
+		return AdderViewChooser(m)
+	case 2:
+		return AdderViewAbbrevInput(m)
+	default:
+		return "Adder got confused 🤮😭😨👿💔🔥💯💯💯"
+	}
 }
 
 // View function for ID input (stage 0)

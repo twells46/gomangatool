@@ -1,22 +1,21 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/twells46/gomangatool/internal/frontend"
+	"github.com/twells46/gomangatool/internal/backend"
 )
 
 func main() {
-	p := tea.NewProgram(frontend.InitModel(), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		log.Fatalln(err)
-	}
+	//p := tea.NewProgram(frontend.InitModel(), tea.WithAltScreen())
+	//if _, err := p.Run(); err != nil {
+	//	log.Fatalln(err)
+	//}
 
-	//store := backend.Opendb("manga.sqlite3")
-	//tester := store.GetAll()
-	//backend.RefreshFeed(tester[0], store)
-
+	store := backend.Opendb("manga.sqlite3")
+	tester := store.GetAll()
+	new := backend.RefreshFeed(tester[0], store)
+	fmt.Println(new)
 	//fmt.Println(store.GetChapters(tester[0].MangaID))
 
 	//fmt.Println(manga)

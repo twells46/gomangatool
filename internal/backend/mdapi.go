@@ -205,20 +205,25 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 }
 
 // Pull the feed, add the chapters to the DB
-// Downloading will come from a SQL query of undownloaded chapters
-// TODO: Update manga.TimeModified
+// Returns the updated Manga
 func RefreshFeed(manga Manga, store *SQLite) Manga {
+	// Implementation note: Right now, this function only gets new chapters.
+	// However, it may be useful later to rework it to get everything every time, which would
+	// automatically update when MD sorts or updates old chapters.
 	offset := 0
-	feed := PullFeedMeta(manga.MangaID, offset, manga.TimeModified)
+	feed := pullFeedMeta(manga.MangaID, offset, time.Unix(0, 0))
 
 	chapters := make([]Chapter, 0)
-	for feed.Offset < feed.Total {
+
+	for ok := true; ok; ok = feed.Offset < feed.Total {
 		pageChapters := parseChData(feed.Data, manga.MangaID)
 		chapters = append(chapters, pageChapters...)
 		offset += 50
-		feed = PullFeedMeta(manga.MangaID, offset, manga.TimeModified)
+		fmt.Println(pageChapters)
+		feed = pullFeedMeta(manga.MangaID, offset, time.Unix(0, 0))
 	}
 
+	manga.Chapters = chapters
 	store.insertChapters(chapters)
 	manga = store.UpdateAtime(manga)
 	return manga
@@ -227,17 +232,25 @@ func RefreshFeed(manga Manga, store *SQLite) Manga {
 // Handles all the ugly stuff of parsing the chapters from the API response
 func parseChData(data []FeedChData, mangaID string) []Chapter {
 	chapters := make([]Chapter, 0)
+	var err error
 	for _, d := range data {
-		chNum, err := strconv.ParseFloat(d.Attributes.Chapter, 64)
 		var title string
 		if d.Attributes.Title == "" {
 			title = fmt.Sprintf("Ch. %s", d.Attributes.Chapter)
 		} else {
 			title = d.Attributes.Title
 		}
-		if err != nil {
-			log.Fatalf("%s: Failed to parse float from %s", err, d.Attributes.Chapter)
+
+		var chNum float64
+		if d.Attributes.Chapter == "" {
+			chNum = 0
+		} else {
+			chNum, err = strconv.ParseFloat(d.Attributes.Chapter, 64)
+			if err != nil {
+				log.Fatalf("%s: Failed to parse float from %s", err, d.Attributes.Chapter)
+			}
 		}
+
 		c := Chapter{
 			ChapterHash: d.ID,
 			ChapterNum:  chNum,
@@ -253,7 +266,7 @@ func parseChData(data []FeedChData, mangaID string) []Chapter {
 }
 
 // Pull and decode the feed for a series
-func PullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed {
+func pullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed {
 	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", mangaID)
 	params := url.Values{}
 	params.Add("translatedLanguage[]", "en")

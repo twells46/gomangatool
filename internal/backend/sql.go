@@ -34,6 +34,9 @@ func (c Chapter) FilterValue() string { return fmt.Sprintf("%f %s", c.ChapterNum
 func (c Chapter) Title() string       { return fmt.Sprintf("%f: %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Description() string { return "" }
 
+// NOTE: This currently stores the publication status, but translation usually lags behind.
+// In order to truly evaluate whether we can ignore a series, would need to check the final Chapter
+// and compare it with the latest we have.
 type Manga struct {
 	MangaID      string
 	SerTitle     string
@@ -312,7 +315,9 @@ func (r *SQLite) insertChapters(chapters []Chapter) {
 	if err != nil {
 		log.Fatalf("%s: Failed to begin transaction", err)
 	}
-	stmt, err := tx.Prepare("INSERT INTO Chapter values (?, ?, ?, ?, ?, ?)")
+	// Sometimes the API return duplicates
+	// Don't know why it does, but just ignore them
+	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Chapter values (?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Fatalf("%s: Failed to prepare transaction", err)
 	}

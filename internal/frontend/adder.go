@@ -55,7 +55,7 @@ func AdderUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEsc:
 			m.adder.stage = 0
-			m.view = all
+			m.view = library
 		}
 	}
 
@@ -75,7 +75,7 @@ func adderExit(m model) model {
 	m.adder.list.SetItems([]list.Item{})
 	m.adder.textInput.Reset()
 	m.adder.stage = 0
-	m.view = all
+	m.view = library
 	return m
 }
 

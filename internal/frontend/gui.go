@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	all int = iota
+	library int = iota
 	series
 	adder
+	review
 )
 
 // TODO: Rework stages to incorporate more than just adder
@@ -26,7 +27,7 @@ func InitModel() model {
 	store := backend.Opendb("manga.sqlite3")
 
 	return model{
-		view:    all,
+		view:    library,
 		adder:   initAdder(),
 		library: initLibrary(store),
 		store:   store,
@@ -53,7 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
-	case all:
+	case library:
 		return LibraryUpdate(msg, m)
 	case adder:
 		return AdderUpdate(msg, m)
@@ -65,7 +66,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // Main view function, which calls the correct sub-function
 func (m model) View() string {
 	switch m.view {
-	case all:
+	case library:
 		return LibraryView(m)
 	case adder:
 		return AdderView(m)

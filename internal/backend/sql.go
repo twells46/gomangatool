@@ -29,6 +29,11 @@ type Chapter struct {
 	IsRead      bool
 }
 
+// Implement interfaces list.DefaultItem and list.Item
+func (c Chapter) FilterValue() string { return fmt.Sprintf("%f %s", c.ChapterNum, c.ChapterName) }
+func (c Chapter) Title() string       { return fmt.Sprintf("%f: %s", c.ChapterNum, c.ChapterName) }
+func (c Chapter) Description() string { return "" }
+
 type Manga struct {
 	MangaID      string
 	SerTitle     string
@@ -42,6 +47,7 @@ type Manga struct {
 	Review       Review
 }
 
+// Implement interfaces list.DefaultItem and list.Item
 func (m Manga) FilterValue() string { return m.FullTitle + m.SerTitle }
 func (m Manga) Title() string       { return fmt.Sprintf("%s (%s)", m.FullTitle, m.SerTitle) }
 func (m Manga) Description() string { return m.Descr }

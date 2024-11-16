@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 	"unicode"
@@ -76,20 +77,29 @@ type SeriesFeed struct {
 }
 
 // Download a chapter given the chapter's ID
-func dlChapter(chapID string) {
-	chap := getChapMetadata(chapID)
+func DlChapter(c Chapter) {
+	chap := getChapMetadata(c.ChapterHash)
+
+	// The regex takes a page name from the API like this:
+	// x6-23b96047cdd7217e5f493894de6d536afa046e7a33695e539a6960e2a7304d35.jpg
+	// and turns it into this:
+	// 6.jpg
+	pageNameCleaner := regexp.MustCompile(`^[A-z]?([0-9]+)-.*(\.[a-z]*)`)
+
+	dirName := fmt.Sprintf("%05.1f-%s", c.ChapterNum, c.ChapterHash)
+	if err := os.MkdirAll(dirName, 0770); err != nil {
+		log.Fatalf("%s: Failed to create directory %s", err, c.ChapterHash)
+	}
 
 	// Respect API rate limit
 	limiter := time.Tick(350 * time.Millisecond)
 
 	for _, pageName := range chap.Chapter.Data {
 		pageURL := fmt.Sprintf("%s/data/%s/%s", chap.BaseURL, chap.Chapter.Hash, pageName)
-		// TODO: Include chapter number in folder name
-		fname := fmt.Sprintf("%s/%s", chapID, pageName)
 
-		if err := os.MkdirAll(chapID, 0770); err != nil {
-			log.Fatalf("%s: Failed to create directory %s", err, chapID)
-		}
+		// Clean and 0-pad each page
+		fname := fmt.Sprintf("%s/%07s", dirName, pageNameCleaner.ReplaceAllString(pageName, "${1}${2}"))
+
 		f, err := os.Create(fname)
 		if err != nil {
 			log.Fatalf("%s: Failed to create file %s", err, fname)

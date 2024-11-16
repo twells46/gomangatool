@@ -20,6 +20,7 @@ type Tag struct {
 	TagTitle string
 }
 
+// TODO: Include volume information
 type Chapter struct {
 	ChapterHash string
 	ChapterNum  float64

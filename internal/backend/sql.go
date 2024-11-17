@@ -35,6 +35,16 @@ func (c Chapter) FilterValue() string { return fmt.Sprintf("%.1f %s", c.ChapterN
 func (c Chapter) Title() string       { return fmt.Sprintf("%.1f: %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Description() string { return "" }
 
+func chapterCmp(a, b Chapter) int {
+	if a.VolumeNum != b.VolumeNum {
+		return a.VolumeNum - b.VolumeNum
+	} else if a.ChapterNum != b.ChapterNum {
+		return int((a.ChapterNum - b.ChapterNum) * 2)
+	}
+
+	return 0
+}
+
 // NOTE: This currently stores the publication status, but translation usually lags behind.
 // In order to truly evaluate whether we can ignore a series, would need to check the final Chapter
 // and compare it with the latest we have.

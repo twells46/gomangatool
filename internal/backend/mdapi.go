@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 	"unicode"
@@ -218,12 +219,13 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 
 // Pull the feed, add the chapters to the DB
 // Returns the updated Manga
+// TODO: Still misses chapters sometimes
 func RefreshFeed(manga Manga, store *SQLite) Manga {
 	// Implementation note: Right now, this function only gets new chapters.
 	// However, it may be useful later to rework it to get everything every time, which would
 	// automatically update when MD sorts or updates old chapters.
 	offset := 0
-	feed := pullFeedMeta(manga.MangaID, offset, time.Unix(0, 0))
+	feed := pullFeedMeta(manga.MangaID, offset, manga.TimeModified)
 
 	chapters := make([]Chapter, 0)
 
@@ -231,13 +233,13 @@ func RefreshFeed(manga Manga, store *SQLite) Manga {
 		pageChapters := parseChData(feed.Data, manga.MangaID)
 		chapters = append(chapters, pageChapters...)
 		offset += 50
-		fmt.Println(pageChapters)
-		feed = pullFeedMeta(manga.MangaID, offset, time.Unix(0, 0))
+		feed = pullFeedMeta(manga.MangaID, offset, manga.TimeModified)
 	}
 
+	slices.SortFunc(chapters, chapterCmp)
 	manga.Chapters = chapters
 	store.insertChapters(chapters)
-	manga = store.UpdateAtime(manga)
+	//manga = store.UpdateAtime(manga)
 	return manga
 }
 

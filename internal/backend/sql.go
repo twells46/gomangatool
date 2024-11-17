@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"cmp"
 	"database/sql"
 	"fmt"
 	"log"
@@ -40,14 +41,10 @@ func (c Chapter) Description() string { return "" }
 // Returns a negative number when a < b, a positive number
 // when a > b, and 0 when a == b.
 func chapterCmp(a, b Chapter) int {
-	if a.VolumeNum != b.VolumeNum {
-		return a.VolumeNum - b.VolumeNum
-	} else if a.ChapterNum != b.ChapterNum {
-		// Prevent int conversion from truncating -1 < n < 1 to 0
-		return int((a.ChapterNum - b.ChapterNum) * 2)
+	if volDiff := cmp.Compare(a.VolumeNum, b.VolumeNum); volDiff != 0 {
+		return volDiff
 	}
-
-	return 0
+	return cmp.Compare(a.ChapterNum, b.ChapterNum)
 }
 
 // NOTE: This currently stores the publication status, but translation usually lags behind.

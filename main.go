@@ -14,11 +14,15 @@ func main() {
 
 	store := backend.Opendb("manga.sqlite3")
 	all := store.GetAll()
+	for i, m := range all {
+		all[i] = backend.RefreshFeed(m, store)
+	}
+
 	tester := all[0]
+	tester.Chapters = backend.DownloadAll(tester.Chapters, store)
+	fmt.Println(tester)
 	//new := backend.RefreshFeed(tester, store)
 	//fmt.Println(new)
-
-	fmt.Println(backend.DlChapter(tester.Chapters[0], store))
 
 	//fmt.Println(manga)
 	//store := backend.Opendb("manga.sqlite3")

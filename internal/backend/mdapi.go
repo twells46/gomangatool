@@ -77,7 +77,7 @@ type SeriesFeed struct {
 }
 
 // Download a chapter given the chapter's ID
-func DlChapter(c Chapter, store *SQLite) Chapter {
+func dlChapter(c Chapter, store *SQLite) Chapter {
 	chap := getChapMetadata(c.ChapterHash)
 
 	// The regex takes a page name from the API like this:
@@ -313,4 +313,14 @@ func pullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed 
 	}
 
 	return m
+}
+
+func DownloadAll(chapters []Chapter, store *SQLite) []Chapter {
+	for i, c := range chapters {
+		if !c.Downloaded {
+			chapters[i] = dlChapter(c, store)
+		}
+	}
+
+	return chapters
 }

@@ -43,6 +43,7 @@ type (
 	tOpt   string
 )
 
+// TODO: This should be integrated into the Adder struct
 var meta backend.MangaMeta
 
 func (t tOpt) FilterValue() string { return string(t) }

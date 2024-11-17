@@ -45,6 +45,7 @@ func newSeries(m model) model {
 func seriesExit(m model) model {
 	m.series.copied = false
 	m.view = library
+	m.series.list.SetItems([]list.Item{})
 	return m
 }
 
@@ -52,11 +53,9 @@ func seriesExit(m model) model {
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
-			return seriesExit(m), nil
-		}
 		switch msg.String() {
+		case "q", "esc":
+			return seriesExit(m), nil
 		case "r":
 			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
 			m.library.list.SetItem(m.library.list.Index(), new)

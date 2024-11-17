@@ -34,6 +34,8 @@ type MangaMeta struct {
 			Description struct {
 				En string `json:"en"`
 			} `json:"description"`
+			LastVolume             string `json:"lastVolume"`
+			LastChapter            string `json:"lastChapter"`
 			PublicationDemographic string `json:"publicationDemographic"`
 			Status                 string `json:"status"`
 			Tags                   []struct {
@@ -179,6 +181,22 @@ func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 		demo = meta.Data.Attributes.PublicationDemographic
 	}
 
+	var finV int
+	if meta.Data.Attributes.LastVolume == "" {
+		finV = 0
+	} else {
+		n, _ := strconv.ParseInt(meta.Data.Attributes.LastVolume, 10, 32)
+		finV = int(n)
+	}
+
+	var finC float64
+	if meta.Data.Attributes.LastChapter == "" {
+		finC = 0
+	} else {
+		i, _ := strconv.ParseFloat(meta.Data.Attributes.LastChapter, 64)
+		finC = i
+	}
+
 	m := Manga{
 		MangaID:      meta.Data.ID,
 		SerTitle:     abbrev,
@@ -187,6 +205,8 @@ func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 		TimeModified: time.Unix(0, 0),
 		Tags:         tags,
 		Chapters:     []Chapter{},
+		lastVolume:   finV,
+		lastChapter:  finC,
 		Demographic:  goodUpper(demo),
 		PubStatus:    goodUpper(meta.Data.Attributes.Status),
 	}
@@ -219,7 +239,6 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 
 // Pull the feed, add the chapters to the DB
 // Returns the updated Manga
-// TODO: Still misses chapters sometimes
 func RefreshFeed(manga Manga, store *SQLite) Manga {
 	// Implementation note: Right now, this function only gets new chapters.
 	// However, it may be useful later to rework it to get everything every time, which would

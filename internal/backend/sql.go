@@ -58,6 +58,8 @@ type Manga struct {
 	TimeModified time.Time
 	Tags         []Tag
 	Chapters     []Chapter
+	lastVolume   int
+	lastChapter  float64
 	Demographic  string
 	PubStatus    string
 	Review       Review
@@ -171,7 +173,8 @@ func (r *SQLite) GetReview(MangaID string) Review {
 func (r *SQLite) GetByID(mangaID string) Manga {
 	row := r.db.QueryRow("SELECT * FROM Manga WHERE MangaID = ?", mangaID)
 	var m Manga
-	err := row.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified, &m.Demographic, &m.PubStatus)
+	err := row.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr,
+		&m.TimeModified, &m.lastVolume, &m.lastChapter, &m.Demographic, &m.PubStatus)
 	if err != nil {
 		log.Fatalf("%s: Failed to query db for manga", err)
 	}
@@ -194,7 +197,8 @@ func (r *SQLite) GetAll() []Manga {
 
 	for rows.Next() {
 		var m Manga
-		err := rows.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr, &m.TimeModified, &m.Demographic, &m.PubStatus)
+		err := rows.Scan(&m.MangaID, &m.SerTitle, &m.FullTitle, &m.Descr,
+			&m.TimeModified, &m.lastVolume, &m.lastChapter, &m.Demographic, &m.PubStatus)
 		if err != nil {
 			log.Fatalf("%s: Failed to parse manga", err)
 		}
@@ -217,6 +221,8 @@ func (r *SQLite) initdb() {
 	    FullTitle VARCHAR(128) NOT NULL,
 	    Descr VARCHAR(1024),
 	    TimeModified DATETIME,
+		LastVolume INTEGER,
+		LastChapter REAL,
 	    Demographic VARCHAR(7),
 	    PubStatus VARCHAR(9),
 
@@ -354,8 +360,9 @@ func (r *SQLite) insertChapters(chapters []Chapter) {
 func (r *SQLite) insertManga(m Manga) {
 	// The Manga table in the DB only has 7 fields, so this is correct.
 	// See directly below for where we insert the tags and chapters.
-	insertStmt := `INSERT INTO Manga values (?, ?, ?, ?, ?, ?, ?)`
-	_, err := r.db.Exec(insertStmt, m.MangaID, m.SerTitle, m.FullTitle, m.Descr, m.TimeModified, m.Demographic, m.PubStatus)
+	insertStmt := `INSERT INTO Manga values (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.Exec(insertStmt, m.MangaID, m.SerTitle, m.FullTitle, m.Descr,
+		m.TimeModified, m.lastVolume, m.lastChapter, m.Demographic, m.PubStatus)
 	if err != nil {
 		log.Fatalf("%s: Failed to insert %v", err, m)
 	}

@@ -38,6 +38,9 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case "a":
 			m.view = adder
 			return m, nil
+		case "r":
+			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
+			m.library.list.SetItem(m.library.list.Index(), new)
 		}
 	}
 

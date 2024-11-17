@@ -44,10 +44,6 @@ func (m model) Init() tea.Cmd {
 // then passes off to the appropriate sub-function
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.adder.list.SetWidth(msg.Width)
-		m.adder.list.SetHeight(msg.Height)
-		return m, nil
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:

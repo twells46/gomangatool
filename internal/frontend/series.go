@@ -50,6 +50,13 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case tea.KeyEsc:
 			return seriesExit(m), nil
 		}
+		switch msg.String() {
+		case "r":
+			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
+			m.library.list.SetItem(m.library.list.Index(), new)
+			m.series.manga = new
+			return newSeries(m), nil
+		}
 	}
 
 	if !m.series.ready {

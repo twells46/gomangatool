@@ -20,13 +20,13 @@ type Tag struct {
 	TagTitle string
 }
 
-// TODO: Include volume information
 type Chapter struct {
 	ChapterHash string
 	ChapterNum  float64
 	ChapterName string
+	VolumeNum   int
 	MangaID     string
-	Download    bool
+	Downloaded  bool
 	IsRead      bool
 }
 
@@ -131,7 +131,7 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	all := make([]Chapter, 0)
 	for rows.Next() {
 		var c Chapter
-		err := rows.Scan(&c.ChapterHash, &c.ChapterNum, &c.ChapterName, &c.MangaID, &c.Download, &c.IsRead)
+		err := rows.Scan(&c.ChapterHash, &c.ChapterNum, &c.ChapterName, &c.VolumeNum, &c.MangaID, &c.Downloaded, &c.IsRead)
 		if err != nil {
 			log.Fatalf("%s: Failed to parse chapter", err)
 		}
@@ -234,6 +234,7 @@ func (r *SQLite) initdb() {
 	    ChapterHash VARCHAR(64) PRIMARY KEY,
 	    ChapterNum REAL,
 	    ChapterName VARCHAR(32),
+		VolumeNum INTEGER,
 	    MangaID VARCHAR(64),
 	    Downloaded INTEGER NOT NULL,
 	    IsRead INTEGER NOT NULL,
@@ -314,18 +315,18 @@ func (r *SQLite) linkTags(MangaID string, tags []Tag) {
 func (r *SQLite) insertChapters(chapters []Chapter) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		log.Fatalf("%s: Failed to begin transaction", err)
+		log.Fatalf("%s: Failed to begin chapter add transaction", err)
 	}
 	// Sometimes the API return duplicates
 	// Don't know why it does, but just ignore them
-	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Chapter values (?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Chapter values (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Fatalf("%s: Failed to prepare transaction", err)
 	}
 	defer stmt.Close()
 
 	for _, c := range chapters {
-		_, err = stmt.Exec(c.ChapterHash, c.ChapterNum, c.ChapterName, c.MangaID, c.Download, c.IsRead)
+		_, err = stmt.Exec(c.ChapterHash, c.ChapterNum, c.ChapterName, c.VolumeNum, c.MangaID, c.Downloaded, c.IsRead)
 		if err != nil {
 			log.Fatalf("%s: Failed to execute transaction on %v", err, c)
 		}
@@ -333,7 +334,7 @@ func (r *SQLite) insertChapters(chapters []Chapter) {
 
 	err = tx.Commit()
 	if err != nil {
-		log.Fatalf("%s: Failed to commit transaction", err)
+		log.Fatalf("%s: Failed to commit chapter add transaction", err)
 	}
 }
 
@@ -363,13 +364,28 @@ func (r *SQLite) insertReview(rev Review) {
 
 func (r *SQLite) UpdateAtime(m Manga) Manga {
 	m.TimeModified = time.Now()
-	updateStmt := "UPDATE Manga SET TimeModified = ?"
-	_, err := r.db.Exec(updateStmt, m.TimeModified)
+	updateStmt := "UPDATE Manga SET TimeModified = ? WHERE MangaID = ?"
+	res, err := r.db.Exec(updateStmt, m.TimeModified, m.MangaID)
 	if err != nil {
 		log.Fatalf("%s: Failed to update access time %v", err, m)
+	} else if n, _ := res.RowsAffected(); n > 1 {
+		log.Fatalf("Bad UpdateAtime: Updated %d rows", n)
 	}
 
 	return m
+}
+
+func (r *SQLite) UpdateChapterDownloaded(c Chapter) Chapter {
+	stmt := "UPDATE Chapter SET Downloaded = 1 WHERE ChapterHash = ?"
+	res, err := r.db.Exec(stmt, c.ChapterHash)
+	if err != nil {
+		log.Fatalf("%s: Failed to update downloaded status %v", err, c)
+	} else if n, _ := res.RowsAffected(); n > 1 {
+		log.Fatalf("Bad UpdateChapterDownloaded: Updated %d rows", n)
+	}
+
+	c.Downloaded = true
+	return c
 }
 
 // Get a new DB connection.

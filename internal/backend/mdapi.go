@@ -77,7 +77,7 @@ type SeriesFeed struct {
 }
 
 // Download a chapter given the chapter's ID
-func DlChapter(c Chapter) {
+func DlChapter(c Chapter, store *SQLite) Chapter {
 	chap := getChapMetadata(c.ChapterHash)
 
 	// The regex takes a page name from the API like this:
@@ -86,7 +86,7 @@ func DlChapter(c Chapter) {
 	// 6.jpg
 	pageNameCleaner := regexp.MustCompile(`^[A-z]?([0-9]+)-.*(\.[a-z]*)`)
 
-	dirName := fmt.Sprintf("%05.1f-%s", c.ChapterNum, c.ChapterHash)
+	dirName := fmt.Sprintf("%02d/%05.1f-%s", c.VolumeNum, c.ChapterNum, c.ChapterHash)
 	if err := os.MkdirAll(dirName, 0770); err != nil {
 		log.Fatalf("%s: Failed to create directory %s", err, c.ChapterHash)
 	}
@@ -109,6 +109,8 @@ func DlChapter(c Chapter) {
 
 		dlPage(pageURL, f)
 	}
+
+	return store.UpdateChapterDownloaded(c)
 }
 
 // Pull and decode chapter metadata
@@ -261,12 +263,24 @@ func parseChData(data []FeedChData, mangaID string) []Chapter {
 			}
 		}
 
+		var vol int
+		if d.Attributes.Volume == "" {
+			vol = 0
+		} else {
+			v, err := strconv.ParseInt(d.Attributes.Volume, 10, 32)
+			if err != nil {
+				log.Fatalf("%s: Failed to parse int from %s", err, d.Attributes.Volume)
+			}
+			vol = int(v)
+		}
+
 		c := Chapter{
 			ChapterHash: d.ID,
 			ChapterNum:  chNum,
 			ChapterName: title,
+			VolumeNum:   vol,
 			MangaID:     mangaID,
-			Download:    false,
+			Downloaded:  false,
 			IsRead:      false,
 		}
 		chapters = append(chapters, c)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
@@ -12,11 +14,11 @@ func main() {
 
 	store := backend.Opendb("manga.sqlite3")
 	all := store.GetAll()
-	tester := all[1]
-	backend.DlChapter(tester.Chapters[0])
-	//new := backend.RefreshFeed(tester[0], store)
+	tester := all[0]
+	//new := backend.RefreshFeed(tester, store)
 	//fmt.Println(new)
-	//fmt.Println(store.GetChapters(tester[0].MangaID))
+
+	fmt.Println(backend.DlChapter(tester.Chapters[0], store))
 
 	//fmt.Println(manga)
 	//store := backend.Opendb("manga.sqlite3")

@@ -9,6 +9,8 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
+type opDoneMsg byte
+
 // The components to view an individual series
 type Series struct {
 	manga  backend.Manga
@@ -52,6 +54,8 @@ func seriesExit(m model) model {
 // Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case opDoneMsg:
+	// Maybe handle error codes?
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
@@ -64,9 +68,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.series.manga = new
 			return newSeries(m), nil
 		case "d":
-			chapter := m.series.list.SelectedItem().(backend.Chapter)
-			new := backend.DownloadChapters(m.store, chapter)
-			m.series.list.SetItem(m.series.list.Index(), new[0])
+			return m, dlChap(&m)
 		}
 	}
 
@@ -78,6 +80,15 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.series.list, cmd = m.series.list.Update(msg)
 	return m, cmd
+}
+
+func dlChap(m *model) tea.Cmd {
+	return func() tea.Msg {
+		chapter := m.series.list.SelectedItem().(backend.Chapter)
+		new := backend.DownloadChapters(m.store, chapter)
+		m.series.list.SetItem(m.series.list.Index(), new[0])
+		return opDoneMsg(1)
+	}
 }
 
 // Overall Series view function

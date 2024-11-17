@@ -54,8 +54,8 @@ func seriesExit(m model) model {
 // Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case opDoneMsg:
-	// Maybe handle error codes?
+	case model:
+		m = msg
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
@@ -68,7 +68,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.series.manga = new
 			return newSeries(m), nil
 		case "d":
-			return m, dlChap(&m)
+			return m, dlChap(m)
 		}
 	}
 
@@ -82,12 +82,12 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func dlChap(m *model) tea.Cmd {
+func dlChap(m model) tea.Cmd {
 	return func() tea.Msg {
 		chapter := m.series.list.SelectedItem().(backend.Chapter)
 		new := backend.DownloadChapters(m.store, chapter)
 		m.series.list.SetItem(m.series.list.Index(), new[0])
-		return opDoneMsg(1)
+		return m
 	}
 }
 

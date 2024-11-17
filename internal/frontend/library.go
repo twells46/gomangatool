@@ -41,6 +41,11 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case "r":
 			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
 			m.library.list.SetItem(m.library.list.Index(), new)
+		case "R":
+			for i, manga := range m.library.list.Items() {
+				new := backend.RefreshFeed(manga.(backend.Manga), m.store)
+				m.library.list.SetItem(i, new)
+			}
 		}
 	}
 

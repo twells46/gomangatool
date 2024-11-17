@@ -4,17 +4,10 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/twells46/gomangatool/internal/backend"
 	"github.com/twells46/gomangatool/internal/frontend"
 )
 
 func main() {
-	store := backend.Opendb("manga.sqlite3")
-	all := store.GetAll()
-	for i, m := range all {
-		all[i] = backend.RefreshFeed(m, store)
-	}
-
 	p := tea.NewProgram(frontend.InitModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatalln(err)

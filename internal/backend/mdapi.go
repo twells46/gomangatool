@@ -85,7 +85,7 @@ func dlChapter(c Chapter, store *SQLite) Chapter {
 
 	// The regex takes a page name from the API like this:
 	// x6-23b96047cdd7217e5f493894de6d536afa046e7a33695e539a6960e2a7304d35.jpg
-	// and turns it into this:
+	// and uses match groups to create this:
 	// 6.jpg
 	pageNameCleaner := regexp.MustCompile(`^[A-z]?([0-9]+)-.*(\.[a-z]*)`)
 
@@ -336,7 +336,9 @@ func pullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed 
 	return m
 }
 
-func DownloadAll(chapters []Chapter, store *SQLite) []Chapter {
+// Downloads the given chapters, returning the updated entries.
+// Any chapters with Chapter.Downloaded == true are ignored.
+func DownloadChapters(store *SQLite, chapters ...Chapter) []Chapter {
 	for i, c := range chapters {
 		if !c.Downloaded {
 			chapters[i] = dlChapter(c, store)

@@ -28,7 +28,7 @@ func InitModel() model {
 
 	return model{
 		view:    library,
-		adder:   initAdder(),
+		adder:   newAdder(),
 		library: initLibrary(store),
 		store:   store,
 	}
@@ -72,5 +72,5 @@ func (m model) View() string {
 		return AdderView(m)
 	}
 
-	return "\n\nHow did we get here?\n\n"
+	return "\n\nView got confused 🤮😭😨👿💔🔥💯💯💯\n\n"
 }

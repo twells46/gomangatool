@@ -10,18 +10,25 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
+const (
+	idInput int = iota
+	chooser
+	abbrevInput
+)
+
 type Adder struct {
 	textInput        textinput.Model
 	list             list.Model
-	seriesID         string
+	mangaID          string
 	fullTitle        string
 	abbrevTitle      string
-	stage            int  // Since theres only 3 stages I don't define a const for this
+	meta             backend.MangaMeta
+	stage            int
 	fetched          bool // For stage 1: have the titles been fetched?
 	textInputUpdated bool // For stage 2: has textInput been cleared and updated?
 }
 
-func initAdder() Adder {
+func newAdder() Adder {
 	ti := textinput.New()
 	ti.Placeholder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	ti.Focus()
@@ -38,46 +45,42 @@ func initAdder() Adder {
 	}
 }
 
+func adderExit(m model) model {
+	m.view = library
+	m.adder = newAdder()
+	return m
+}
+
 type (
 	errMsg error
 	tOpt   string
 )
 
-// TODO: This should be integrated into the Adder struct
-var meta backend.MangaMeta
-
+// Implement list.Item and list.DefaultItem for tOpt
 func (t tOpt) FilterValue() string { return string(t) }
 func (t tOpt) Title() string       { return string(t) }
 func (t tOpt) Description() string { return "" }
 
+// Overall update function for the Adder
 func AdderUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			m.adder.stage = 0
-			m.view = library
+			return adderExit(m), nil
 		}
 	}
 
 	switch m.adder.stage {
-	case 0:
+	case idInput:
 		return AdderUpdateIDInput(msg, m)
-	case 1:
+	case chooser:
 		return AdderUpdateChooser(msg, m)
-	case 2:
+	case abbrevInput:
 		return AdderUpdateAbbrevInput(msg, m)
 	default:
 		return m, nil
 	}
-}
-
-func adderExit(m model) model {
-	m.adder.list.SetItems([]list.Item{})
-	m.adder.textInput.Reset()
-	m.adder.stage = 0
-	m.view = library
-	return m
 }
 
 // Update function for the inputting the manga ID (stage 0)
@@ -85,12 +88,9 @@ func AdderUpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEsc:
-			return adderExit(m), nil
-
 		case tea.KeyEnter:
-			m.adder.seriesID = m.adder.textInput.Value()
-			m.adder.stage = 1 // Move to title choices list
+			m.adder.mangaID = m.adder.textInput.Value()
+			m.adder.stage = chooser // Move to title choices list
 			return m, nil
 		}
 
@@ -111,16 +111,13 @@ func AdderUpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if val, ok := m.adder.list.SelectedItem().(tOpt); ok {
 				m.adder.fullTitle = string(val)
-				m.adder.stage = 2 // Move to abbreviation input form
+				m.adder.stage = abbrevInput // Move to abbreviation input form
 			}
 			return m, nil
 		}
-	case []list.Item:
-		m.adder.list.SetItems(msg)
-		m.adder.fetched = true
 	}
 	if !m.adder.fetched {
-		return m, getTitles(m.adder.seriesID)
+		return getTitles(m), nil
 	}
 
 	var cmd tea.Cmd
@@ -131,19 +128,16 @@ func AdderUpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 // View function for abbreviated title input (stage 2)
 func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case []list.Item:
-		m.adder.list.SetItems(msg)
-		m.adder.fetched = true
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlLeft:
-			m.adder.stage = 1 // Return to list to choose a new title
+			m.adder.stage = chooser // Return to list to choose a new title
 			return m, nil
 
 		case tea.KeyEnter:
 			m.adder.abbrevTitle = m.adder.textInput.Value()
-			backend.NewManga(meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
-			m.library.toAddID = m.adder.seriesID
+			backend.NewManga(m.adder.meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
+			m.library.toAddID = m.adder.mangaID // Tell the library view it has a new series to display
 			return adderExit(m), nil
 		}
 	}
@@ -162,14 +156,14 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 func AdderView(m model) string {
 	switch m.adder.stage {
-	case 0:
+	case idInput:
 		return AdderViewIDInput(m)
-	case 1:
+	case chooser:
 		return AdderViewChooser(m)
-	case 2:
+	case abbrevInput:
 		return AdderViewAbbrevInput(m)
 	default:
-		return "Adder got confused 🤮😭😨👿💔🔥💯💯💯"
+		return "\n\nAdder got confused 🤮😭😨👿💔🔥💯💯💯\n\n"
 	}
 }
 
@@ -198,21 +192,22 @@ func AdderViewAbbrevInput(m model) string {
 }
 
 // Get the titles and put them into a slice of []list.Item
-// The title chooser update function is "listening" for this
-// type of tea.Msg message and adds them to the view.
-func getTitles(MangaID string) tea.Cmd {
-	return func() tea.Msg {
-		meta = backend.PullMangaMeta(MangaID)
-		titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
-		for _, v := range meta.Data.Attributes.AltTitles {
-			if len(v.En) > 0 {
-				titleOptions = append(titleOptions, tOpt(v.En))
-			} else if len(v.Ja) > 0 {
-				titleOptions = append(titleOptions, tOpt(v.Ja))
-			} else if len(v.JaRo) > 0 {
-				titleOptions = append(titleOptions, tOpt(v.JaRo))
-			}
+// Returns the model with the items set and stores the metadata for later use
+func getTitles(m model) model {
+	meta := backend.PullMangaMeta(m.adder.mangaID)
+	titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
+	for _, v := range meta.Data.Attributes.AltTitles {
+		if len(v.En) > 0 {
+			titleOptions = append(titleOptions, tOpt(v.En))
+		} else if len(v.Ja) > 0 {
+			titleOptions = append(titleOptions, tOpt(v.Ja))
+		} else if len(v.JaRo) > 0 {
+			titleOptions = append(titleOptions, tOpt(v.JaRo))
 		}
-		return titleOptions
 	}
+	m.adder.list.SetItems(titleOptions)
+	m.adder.fetched = true
+	m.adder.meta = meta
+
+	return m
 }

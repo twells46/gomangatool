@@ -48,7 +48,7 @@ func LibraryView(m model) string {
 
 func updateAfterAdd(m model) model {
 	new := m.store.GetByID(m.library.toAddID)
-	m.library.list.InsertItem(2147483647, list.Item(new))
+	m.library.list.InsertItem(2147483647, list.Item(new)) // Ghetto append using the max of an int
 	m.library.toAddID = ""
 	return m
 }

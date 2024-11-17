@@ -17,6 +17,7 @@ type model struct {
 	view     int
 	adder    Adder
 	library  Library
+	series   Series
 	err      error // NOTE: Currently unused
 	store    *backend.SQLite
 	quitting bool // NOTE: Currently unused
@@ -58,6 +59,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return LibraryUpdate(msg, m)
 	case adder:
 		return AdderUpdate(msg, m)
+	case series:
+		return SeriesUpdate(msg, m)
 	}
 
 	return m, tea.Quit
@@ -70,6 +73,8 @@ func (m model) View() string {
 		return LibraryView(m)
 	case adder:
 		return AdderView(m)
+	case series:
+		return SeriesView(m)
 	}
 
 	return "\n\nView got confused 🤮😭😨👿💔🔥💯💯💯\n\n"

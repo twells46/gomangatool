@@ -31,8 +31,8 @@ type Chapter struct {
 }
 
 // Implement interfaces list.DefaultItem and list.Item
-func (c Chapter) FilterValue() string { return fmt.Sprintf("%f %s", c.ChapterNum, c.ChapterName) }
-func (c Chapter) Title() string       { return fmt.Sprintf("%f: %s", c.ChapterNum, c.ChapterName) }
+func (c Chapter) FilterValue() string { return fmt.Sprintf("%.1f %s", c.ChapterNum, c.ChapterName) }
+func (c Chapter) Title() string       { return fmt.Sprintf("%.1f: %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Description() string { return "" }
 
 // NOTE: This currently stores the publication status, but translation usually lags behind.

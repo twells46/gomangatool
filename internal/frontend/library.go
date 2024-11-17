@@ -28,8 +28,13 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "enter":
+			m.view = series
+			m.series.manga = m.library.list.SelectedItem().(backend.Manga)
+			return m, nil
 		case "a":
 			m.view = adder
+			return m, nil
 		}
 	}
 

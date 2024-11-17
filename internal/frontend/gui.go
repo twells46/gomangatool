@@ -32,6 +32,7 @@ func InitModel() model {
 		view:    library,
 		adder:   newAdder(),
 		library: initLibrary(store),
+		series:  blankSeries(),
 		store:   store,
 	}
 }

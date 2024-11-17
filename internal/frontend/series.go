@@ -11,9 +11,19 @@ import (
 
 // The components to view an individual series
 type Series struct {
-	manga backend.Manga
-	list  list.Model
-	ready bool
+	manga  backend.Manga
+	list   list.Model
+	copied bool
+}
+
+func blankSeries() Series {
+	// TODO: Make a custom delegate to display more info
+	d := list.NewDefaultDelegate()
+	d.ShowDescription = false
+
+	return Series{
+		list: list.New([]list.Item{}, d, 80, 25),
+	}
 }
 
 // Create a new series view.
@@ -24,20 +34,16 @@ func newSeries(m model) model {
 		items = append(items, list.Item(chapter))
 	}
 
-	// TODO: Make a custom delegate to display more info
-	d := list.NewDefaultDelegate()
-	d.ShowDescription = false
-
-	m.series.list = list.New(items, d, 80, 25)
+	m.series.list.SetItems(items)
 	m.series.list.Title = m.series.manga.FullTitle
-	m.series.ready = true
+	m.series.copied = true
 
 	return m
 }
 
 // Exit the series view and return to the Library
 func seriesExit(m model) model {
-	m.series.ready = false
+	m.series.copied = false
 	m.view = library
 	return m
 }
@@ -59,7 +65,8 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if !m.series.ready {
+	// TODO: Fix crappy loading
+	if !m.series.copied {
 		return newSeries(m), nil
 	}
 
@@ -70,10 +77,6 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // Overall Series view function
 func SeriesView(m model) string {
-	if !m.series.ready {
-		return "Loading..."
-	}
-
 	info := fmt.Sprintf("%s\n%v\n%s", m.series.manga.FullTitle, m.series.manga.Tags, m.series.manga.Descr)
 	return lipgloss.JoinVertical(lipgloss.Top, info, m.series.list.View())
 }

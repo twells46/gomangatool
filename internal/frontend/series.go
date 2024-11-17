@@ -9,12 +9,15 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
+// The components to view an individual series
 type Series struct {
 	manga backend.Manga
 	list  list.Model
 	ready bool
 }
 
+// Create a new series view.
+// Returns that model with a correctly set list
 func newSeries(m model) model {
 	items := make([]list.Item, 0)
 	for _, chapter := range m.series.manga.Chapters {
@@ -32,11 +35,14 @@ func newSeries(m model) model {
 	return m
 }
 
+// Exit the series view and return to the Library
 func seriesExit(m model) model {
+	m.series.ready = false
 	m.view = library
 	return m
 }
 
+// Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -55,6 +61,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Overall Series view function
 func SeriesView(m model) string {
 	if !m.series.ready {
 		return "Loading..."

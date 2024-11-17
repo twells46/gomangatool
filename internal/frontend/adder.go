@@ -16,6 +16,7 @@ const (
 	abbrevInput
 )
 
+// The components of the Adder form, for adding new Manga
 type Adder struct {
 	textInput        textinput.Model
 	list             list.Model
@@ -24,10 +25,11 @@ type Adder struct {
 	abbrevTitle      string
 	meta             backend.MangaMeta
 	stage            int
-	fetched          bool // For stage 1: have the titles been fetched?
+	fetched          bool // For stage 1: have the title options been fetched?
 	textInputUpdated bool // For stage 2: has textInput been cleared and updated?
 }
 
+// Return an adder with initialized textinput and list
 func newAdder() Adder {
 	ti := textinput.New()
 	ti.Placeholder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
@@ -45,6 +47,7 @@ func newAdder() Adder {
 	}
 }
 
+// Clear the adder and return to the library
 func adderExit(m model) model {
 	m.view = library
 	m.adder = newAdder()
@@ -154,6 +157,7 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Overall view function for the Adder
 func AdderView(m model) string {
 	switch m.adder.stage {
 	case idInput:

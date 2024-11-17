@@ -6,11 +6,13 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
+// The components of the main, library view
 type Library struct {
 	list    list.Model
 	toAddID string
 }
 
+// Initialize a new Library with the stored series
 func initLibrary(store *backend.SQLite) Library {
 	items := make([]list.Item, 0)
 	for _, v := range store.GetAll() {
@@ -24,6 +26,7 @@ func initLibrary(store *backend.SQLite) Library {
 	return Library{list, ""}
 }
 
+// Overall Library update function
 func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -47,10 +50,12 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Overall Library view function
 func LibraryView(m model) string {
 	return m.library.list.View()
 }
 
+// Add the series Adder just added to the view
 func updateAfterAdd(m model) model {
 	new := m.store.GetByID(m.library.toAddID)
 	m.library.list.InsertItem(2147483647, list.Item(new)) // Ghetto append using the max of an int

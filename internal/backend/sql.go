@@ -20,6 +20,7 @@ type Tag struct {
 	TagTitle string
 }
 
+// Hold a single chapter of a manga.
 type Chapter struct {
 	ChapterHash string
 	ChapterNum  float64
@@ -35,10 +36,14 @@ func (c Chapter) FilterValue() string { return fmt.Sprintf("%.1f %s", c.ChapterN
 func (c Chapter) Title() string       { return fmt.Sprintf("%.1f: %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Description() string { return "" }
 
+// Function to use with slice.SortFunc.
+// Returns a negative number when a < b, a positive number
+// when a > b, and 0 when a == b.
 func chapterCmp(a, b Chapter) int {
 	if a.VolumeNum != b.VolumeNum {
 		return a.VolumeNum - b.VolumeNum
 	} else if a.ChapterNum != b.ChapterNum {
+		// Prevent int conversion from truncating -1 < n < 1 to 0
 		return int((a.ChapterNum - b.ChapterNum) * 2)
 	}
 

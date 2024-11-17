@@ -12,7 +12,8 @@ const (
 	review
 )
 
-// TODO: Rework stages to incorporate more than just adder
+// The overall tea.Model, which contains the various sub-models
+// for the different functionalities of the program.
 type model struct {
 	view     int
 	adder    Adder

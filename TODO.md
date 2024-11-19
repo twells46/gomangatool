@@ -56,3 +56,10 @@ This will allow me to have shared keybinds and UI elements between them more eas
 Change the styles based on new chapters
 
 Add review mechanism
+
+Heres the current problem:
+When I click into a series, it needs to load the chapters so the user can view them.
+To do this, I have a flag which, when false, calls the function to do the loading.
+This function seems to be basically identical to the getTitles function from adder, but for some reason it behaves incorrectly.
+It does not update the view until the user presses a key.
+I don't have this problem anywhere else, so I'm really not sure why it is such a hassle here.

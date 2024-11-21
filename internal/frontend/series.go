@@ -60,8 +60,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "esc":
 			return seriesExit(m), nil
-		// TODO: Fix freezing when refreshing or downloading
-		// Should probably be tea.cmds
+		// Should probably be tea.cmd
 		case "r":
 			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
 			m.library.list.SetItem(m.library.list.Index(), new)
@@ -70,11 +69,6 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case "d":
 			return m, dlChap(&m.series.list, m.store)
 		}
-	}
-
-	// TODO: Fix crappy loading
-	if !m.series.copied {
-		return newSeries(m), nil
 	}
 
 	var cmd tea.Cmd

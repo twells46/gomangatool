@@ -32,9 +32,11 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			m.view = series
 			m.series.manga = m.library.list.SelectedItem().(backend.Manga)
-			return m, nil
+			m.view = series
+			// By calling newSeries here, the list will be loaded and rendered properly
+			// instantly
+			return newSeries(m), nil
 		case "a":
 			m.view = adder
 			return m, nil

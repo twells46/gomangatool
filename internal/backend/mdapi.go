@@ -89,8 +89,8 @@ func dlChapter(c Chapter, store *SQLite) Chapter {
 	// 6.jpg
 	pageNameCleaner := regexp.MustCompile(`^[A-z]?([0-9]+)-.*(\.[a-z]*)`)
 
-	dirName := fmt.Sprintf("%02d/%05.1f-%s", c.VolumeNum, c.ChapterNum, c.ChapterHash)
-	if err := os.MkdirAll(dirName, 0770); err != nil {
+	fullPath := fmt.Sprintf("/home/twells/media/manga/%s", c.DirName(store))
+	if err := os.MkdirAll(fullPath, 0770); err != nil {
 		log.Fatalf("%s: Failed to create directory %s", err, c.ChapterHash)
 	}
 
@@ -101,7 +101,7 @@ func dlChapter(c Chapter, store *SQLite) Chapter {
 		pageURL := fmt.Sprintf("%s/data/%s/%s", chap.BaseURL, chap.Chapter.Hash, pageName)
 
 		// Clean and 0-pad each page
-		fname := fmt.Sprintf("%s/%07s", dirName, pageNameCleaner.ReplaceAllString(pageName, "${1}${2}"))
+		fname := fmt.Sprintf("%s/%07s", fullPath, pageNameCleaner.ReplaceAllString(pageName, "${1}${2}"))
 
 		f, err := os.Create(fname)
 		if err != nil {

@@ -41,6 +41,12 @@ func (c Chapter) FilterValue() string { return fmt.Sprintf("%.1f %s", c.ChapterN
 func (c Chapter) Title() string       { return fmt.Sprintf("%.1f: %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Description() string { return "" }
 
+func (c Chapter) DirName(store *SQLite) string {
+	return fmt.Sprintf("%s/%02d/%05.1f-%s",
+		store.GetByID(c.MangaID).SerTitle,
+		c.VolumeNum, c.ChapterNum, c.ChapterHash)
+}
+
 // Function to use with slice.SortFunc.
 // Returns a negative number when a < b, a positive number
 // when a > b, and 0 when a == b.

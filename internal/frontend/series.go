@@ -2,6 +2,8 @@ package frontend
 
 import (
 	"fmt"
+	"log"
+	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -10,7 +12,7 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
-type opDoneMsg byte
+type ChapReadMsg int
 
 var (
 	titleStyle = lipgloss.NewStyle().
@@ -82,6 +84,8 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			return newSeries(m), nil
 		case "d":
 			return m, dlChap(&m.series.list, m.store)
+		case "enter":
+			return m, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store)
 		}
 	}
 
@@ -116,6 +120,18 @@ func SeriesView(m model) string {
 		wrapStyle.Render(m.series.manga.Descr))
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, m.series.list.View(), info)
+}
+
+// TODO: This should download the chapter if it isn't already
+func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
+	return func() tea.Msg {
+		fullPath := fmt.Sprintf("/home/twells/media/manga/%s", c.DirName(store))
+		readCmd := exec.Command("imv", "-f", "-d", "-r", fullPath)
+		if err := readCmd.Run(); err != nil {
+			log.Println(err)
+		}
+		return ChapReadMsg(idx)
+	}
 }
 
 func RenderTags(tags []backend.Tag) string {

@@ -54,8 +54,8 @@ func seriesExit(m model) model {
 // Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case model:
-		m = msg
+	case list.Model:
+		m.series.list = msg
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
@@ -68,7 +68,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.series.manga = new
 			return newSeries(m), nil
 		case "d":
-			return m, dlChap(m)
+			return m, dlChap(&m.series.list, m.store)
 		}
 	}
 
@@ -82,11 +82,20 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func dlChap(m model) tea.Cmd {
+// TODO: When I get styling set up, need to check that this function properly triggers
+// the UI changes that it should
+func dlChap(m *list.Model, store *backend.SQLite) tea.Cmd {
+	// This function should download a chapter.
+	// It must update the list with the chapter with the download flag triggered
+	// so that I can style downloaded chapters differently.
+	// It also needs to place the chapter correctly in the sorted list of chapters.
+	// Currently it does not update the model from the parent Manga.
+	// Maybe that should be an exit function thing?
+
 	return func() tea.Msg {
-		chapter := m.series.list.SelectedItem().(backend.Chapter)
-		new := backend.DownloadChapters(m.store, chapter)
-		m.series.list.SetItem(m.series.list.Index(), new[0])
+		chapter := m.SelectedItem().(backend.Chapter)
+		new := backend.DownloadChapters(store, chapter)
+		m.SetItem(m.Index(), new[0])
 		return m
 	}
 }

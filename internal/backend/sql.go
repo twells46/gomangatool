@@ -21,6 +21,10 @@ type Tag struct {
 	TagTitle string
 }
 
+func (t Tag) String() string {
+	return t.TagTitle
+}
+
 // Hold a single chapter of a manga.
 type Chapter struct {
 	ChapterHash string

@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,6 +12,20 @@ import (
 
 type opDoneMsg byte
 
+var (
+	titleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
+			Padding(0, 0, 0, 2)
+	wrapStyle = lipgloss.NewStyle().
+			Width(100).
+			Padding(0, 2).
+			Foreground(lipgloss.AdaptiveColor{Light: "#5f5f5f", Dark: "#777777"})
+	boldStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#ffffff"}).
+			Bold(true)
+)
+
 // The components to view an individual series
 type Series struct {
 	manga  backend.Manga
@@ -19,7 +34,6 @@ type Series struct {
 }
 
 func blankSeries() Series {
-	// TODO: Make a custom delegate to display more info
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
@@ -96,6 +110,23 @@ func dlChap(m *list.Model, store *backend.SQLite) tea.Cmd {
 
 // Overall Series view function
 func SeriesView(m model) string {
-	info := fmt.Sprintf("%s\n%v\n%s", m.series.manga.FullTitle, m.series.manga.Tags, m.series.manga.Descr)
-	return lipgloss.JoinVertical(lipgloss.Top, info, m.series.list.View())
+	info := fmt.Sprintf("%s\n%s%s",
+		wrapStyle.Render(RenderTags(m.series.manga.Tags)),
+		boldStyle.Render("Description:\n"),
+		wrapStyle.Render(m.series.manga.Descr))
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, m.series.list.View(), info)
+}
+
+func RenderTags(tags []backend.Tag) string {
+	tagStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}).
+		Padding(0, 1, 0, 0)
+
+	var sb strings.Builder
+	for _, t := range tags {
+		sb.WriteString(tagStyle.Render(t.String()) + "\t")
+	}
+
+	return fmt.Sprintf("%s%s", boldStyle.Render("Tags:\n"), sb.String())
 }

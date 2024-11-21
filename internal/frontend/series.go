@@ -12,6 +12,7 @@ import (
 	"github.com/twells46/gomangatool/internal/backend"
 )
 
+type ChapDlMsg int
 type ChapReadMsg int
 
 var (
@@ -36,6 +37,9 @@ type Series struct {
 }
 
 func blankSeries() Series {
+	// TODO: Make item style different based on:
+	// downloaded
+	// isRead
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
@@ -69,6 +73,8 @@ func seriesExit(m model) model {
 
 // Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	// TODO: dlChap and ReadChap both need to have their messages handled when the return
+	// to the update function
 	switch msg := msg.(type) {
 	case list.Model:
 		m.series.list = msg
@@ -83,7 +89,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.series.manga = new
 			return newSeries(m), nil
 		case "d":
-			return m, dlChap(&m.series.list, m.store)
+			return m, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store)
 		case "enter":
 			return m, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store)
 		}
@@ -94,9 +100,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// TODO: When I get styling set up, need to check that this function properly triggers
-// the UI changes that it should
-func dlChap(m *list.Model, store *backend.SQLite) tea.Cmd {
+func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 	// This function should download a chapter.
 	// It must update the list with the chapter with the download flag triggered
 	// so that I can style downloaded chapters differently.
@@ -105,21 +109,9 @@ func dlChap(m *list.Model, store *backend.SQLite) tea.Cmd {
 	// Maybe that should be an exit function thing?
 
 	return func() tea.Msg {
-		chapter := m.SelectedItem().(backend.Chapter)
-		new := backend.DownloadChapters(store, chapter)
-		m.SetItem(m.Index(), new[0])
-		return m
+		backend.DownloadChapters(store, chapter)
+		return ChapDlMsg(idx)
 	}
-}
-
-// Overall Series view function
-func SeriesView(m model) string {
-	info := fmt.Sprintf("%s\n%s%s",
-		wrapStyle.Render(RenderTags(m.series.manga.Tags)),
-		boldStyle.Render("Description:\n"),
-		wrapStyle.Render(m.series.manga.Descr))
-
-	return lipgloss.JoinHorizontal(lipgloss.Left, m.series.list.View(), info)
 }
 
 // TODO: This should download the chapter if it isn't already
@@ -132,6 +124,16 @@ func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 		}
 		return ChapReadMsg(idx)
 	}
+}
+
+// Overall Series view function
+func SeriesView(m model) string {
+	info := fmt.Sprintf("%s\n%s%s",
+		wrapStyle.Render(RenderTags(m.series.manga.Tags)),
+		boldStyle.Render("Description:\n"),
+		wrapStyle.Render(m.series.manga.Descr))
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, m.series.list.View(), info)
 }
 
 func RenderTags(tags []backend.Tag) string {

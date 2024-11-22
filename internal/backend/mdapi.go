@@ -16,6 +16,8 @@ import (
 	"unicode/utf8"
 )
 
+// This stores the response from a `manga/%s` API query
+// to be parsed into more useful forms.
 type MangaMeta struct {
 	Result   string `json:"result"`
 	Response string `json:"response"`
@@ -51,6 +53,10 @@ type MangaMeta struct {
 	} `json:"data"`
 }
 
+// Stores the response from an `at-home/server/%s` API query.
+// This is what we use to download a single chapter -
+// the final URL we use to download the pages is built
+// out of the results from this struct.
 type chapterMeta struct {
 	Result  string `json:"result"`
 	BaseURL string `json:"baseUrl"`
@@ -60,9 +66,11 @@ type chapterMeta struct {
 	} `json:"chapter"`
 }
 
-type FeedChData struct {
-	ID string `json:"id"`
-	//Type       string `json:"type"`
+// Stores the list of chapters returned as part of a
+// `manga/%s/feed` API query. It exists to allow easier organization
+// when parsing the entire feed response.
+type feedChData struct {
+	ID         string `json:"id"`
 	Attributes struct {
 		Title   string `json:"title"`
 		Volume  string `json:"volume"`
@@ -70,16 +78,19 @@ type FeedChData struct {
 	} `json:"attributes"`
 }
 
+// Stores the response from a `manga/%s/feed` API query.
 type SeriesFeed struct {
 	Result   string       `json:"result"`
 	Response string       `json:"response"`
-	Data     []FeedChData `json:"data"`
+	Data     []feedChData `json:"data"`
 	Limit    int          `json:"limit"`
 	Offset   int          `json:"offset"`
 	Total    int          `json:"total"`
 }
 
-// Download a chapter given the chapter's ID
+// Download a chapter given the Chapter struct and return the
+// updated Chapter.
+// NOTE: This also updates the Downloaded status in the DB.
 func dlChapter(c Chapter, store *SQLite) Chapter {
 	chap := getChapMetadata(c.ChapterHash)
 
@@ -115,7 +126,7 @@ func dlChapter(c Chapter, store *SQLite) Chapter {
 	return store.UpdateChapterDownloaded(c)
 }
 
-// Pull and decode chapter metadata
+// Pull and decode a single chapter's metadata.
 func getChapMetadata(chapID string) chapterMeta {
 	chapURL := fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", chapID)
 
@@ -136,7 +147,7 @@ func getChapMetadata(chapID string) chapterMeta {
 	return chap
 }
 
-// Download a single page to the file
+// Download a single page.
 func dlPage(pageURL string, f *os.File) {
 	img, err := http.Get(pageURL)
 	if err != nil {
@@ -168,10 +179,10 @@ func PullMangaMeta(MangaID string) MangaMeta {
 	return m
 }
 
-// Create and store a new manga.
+// Create a new Manga, store it in the DB, and return it.
 // This does not do anything with feeds or getting the chapters,
 // it only gets the series info.
-func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
+func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) Manga {
 	tags := parseTags(&meta, store)
 	var demo string
 	if meta.Data.Attributes.PublicationDemographic == "" {
@@ -211,15 +222,11 @@ func NewManga(meta MangaMeta, title string, abbrev string, store *SQLite) {
 	}
 
 	store.insertManga(m)
-}
-
-func goodUpper(text string) string {
-	r, size := utf8.DecodeRuneInString(text)
-	return string(unicode.ToUpper(r)) + text[size:]
+	return m
 }
 
 // Parse the given tags, guarantee they are in the DB,
-// then return them in the Tag struct
+// then return them in the Tag struct.
 func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 	tagNames := make([]string, 0)
 
@@ -236,8 +243,14 @@ func parseTags(meta *MangaMeta, store *SQLite) []Tag {
 	return store.tagNamesToTags(tagNames)
 }
 
-// Pull the feed, add the chapters to the DB
-// Returns the updated Manga
+// Helper to uppercase the first letter of a string
+func goodUpper(text string) string {
+	r, size := utf8.DecodeRuneInString(text)
+	return string(unicode.ToUpper(r)) + text[size:]
+}
+
+// Pull the MD feed and add the chapters to the DB.
+// Returns the updated Manga.
 func RefreshFeed(manga Manga, store *SQLite) Manga {
 	// Implementation note: Right now, this function only gets new chapters.
 	// However, it may be useful later to rework it to get everything every time, which would
@@ -257,12 +270,12 @@ func RefreshFeed(manga Manga, store *SQLite) Manga {
 	slices.SortFunc(chapters, chapterCmp)
 	manga.Chapters = chapters
 	store.insertChapters(chapters)
-	//manga = store.UpdateAtime(manga)
+	manga = store.UpdateTimeModified(manga)
 	return manga
 }
 
-// Handles all the ugly stuff of parsing the chapters from the API response
-func parseChData(data []FeedChData, mangaID string, abbrev string) []Chapter {
+// Handle all the ugly stuff of parsing the chapters from the API response.
+func parseChData(data []feedChData, mangaID string, abbrev string) []Chapter {
 	chapters := make([]Chapter, 0)
 	var err error
 	for _, d := range data {
@@ -312,7 +325,7 @@ func parseChData(data []FeedChData, mangaID string, abbrev string) []Chapter {
 	return chapters
 }
 
-// Pull and decode the feed for a series
+// Pull and decode the feed for a series.
 func pullFeedMeta(mangaID string, offset int, lastUpdated time.Time) SeriesFeed {
 	feedURL := fmt.Sprintf("https://api.mangadex.org/manga/%s/feed", mangaID)
 	params := url.Values{}

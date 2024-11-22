@@ -40,9 +40,9 @@ func blankSeries() Series {
 	// TODO: Make item style different based on:
 	// downloaded
 	// isRead
-	//d := list.NewDefaultDelegate()
+	d := list.NewDefaultDelegate()
 	//d.ShowDescription = false
-	d := NewSeriesDelegate()
+	//d := NewSeriesDelegate()
 
 	return Series{
 		list: list.New([]list.Item{}, d, 80, 25),
@@ -74,31 +74,46 @@ func seriesExit(m model) model {
 
 // Overall Series update function
 func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	// TODO: dlChap and ReadChap both need to have their messages handled when the return
-	// to the update function
+	cmds := make([]tea.Cmd, 0)
 	switch msg := msg.(type) {
+	case ChapDlMsg:
+		tmp := m.series.list.Items()[msg].(backend.Chapter)
+		tmp.Downloaded = true
+		cmds = append(cmds, m.series.list.SetItem(int(msg), tmp))
+		m.series.list.StopSpinner()
+	case ChapReadMsg:
+		tmp := m.series.list.Items()[msg].(backend.Chapter)
+		tmp.IsRead = true
+		cmds = append(cmds, m.series.list.SetItem(int(msg), tmp))
+		m.series.list.StopSpinner()
+
 	case list.Model:
 		m.series.list = msg
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
 			return seriesExit(m), nil
-		// Should probably be tea.cmd
+
+		// TODO: Refresh should be a tea.Cmd
 		case "r":
 			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
 			m.library.list.SetItem(m.library.list.Index(), new)
 			m.series.manga = new
 			return newSeries(m), nil
 		case "d":
-			return m, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store)
+			cmds = append(cmds, m.series.list.StartSpinner())
+			cmds = append(cmds, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
 		case "enter":
-			return m, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store)
+			cmds = append(cmds, m.series.list.StartSpinner())
+			cmds = append(cmds, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
 		}
 	}
 
 	var cmd tea.Cmd
 	m.series.list, cmd = m.series.list.Update(msg)
-	return m, cmd
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
 func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
@@ -116,6 +131,7 @@ func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 }
 
 // TODO: This should download the chapter if it isn't already
+// It also needs to update the DB Chapter.IsRead field
 func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 	return func() tea.Msg {
 		fullPath := fmt.Sprintf("/home/twells/media/manga/%s", c.DirName(store))

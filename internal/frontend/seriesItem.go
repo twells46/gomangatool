@@ -20,9 +20,9 @@ import (
 
 const ellipses = "..."
 
-// DefaultItemStyles defines styling for a default list item.
+// SeriesStyles defines styling for a default list item.
 // See DefaultItemView for when these come into play.
-type DefaultItemStyles struct {
+type SeriesStyles struct {
 	// The Normal state.
 	NormalTitle lipgloss.Style
 	NormalDesc  lipgloss.Style
@@ -39,9 +39,9 @@ type DefaultItemStyles struct {
 	FilterMatch lipgloss.Style
 }
 
-// NewDefaultItemStyles returns style definitions for a default item. See
+// NewDefaultSeriesStyles returns style definitions for a default item. See
 // DefaultItemView for when these come into play.
-func NewDefaultItemStyles() (s DefaultItemStyles) {
+func NewDefaultSeriesStyles() (s SeriesStyles) {
 	s.NormalTitle = lipgloss.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
 		Padding(0, 0, 0, 2)
@@ -85,7 +85,7 @@ func NewDefaultItemStyles() (s DefaultItemStyles) {
 // include items in the list's default short and full help menus.
 type SeriesDelegate struct {
 	ShowDescription bool
-	Styles          DefaultItemStyles
+	Styles          SeriesStyles
 	UpdateFunc      func(tea.Msg, *tea.Model) tea.Cmd
 	ShortHelpFunc   func() []key.Binding
 	FullHelpFunc    func() [][]key.Binding
@@ -97,7 +97,7 @@ type SeriesDelegate struct {
 func NewSeriesDelegate() SeriesDelegate {
 	return SeriesDelegate{
 		ShowDescription: true,
-		Styles:          NewDefaultItemStyles(),
+		Styles:          NewDefaultSeriesStyles(),
 		height:          2,
 		spacing:         1,
 	}

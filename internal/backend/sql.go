@@ -39,7 +39,20 @@ type Chapter struct {
 // Implement interfaces list.DefaultItem and list.Item
 func (c Chapter) FilterValue() string { return fmt.Sprintf("%.1f %s", c.ChapterNum, c.ChapterName) }
 func (c Chapter) Title() string       { return fmt.Sprintf("%.1f: %s", c.ChapterNum, c.ChapterName) }
-func (c Chapter) Description() string { return "" }
+func (c Chapter) Description() string {
+	var dl, r string
+	if c.Downloaded {
+		dl = "Downloaded: ◯︎"
+	} else {
+		dl = "Downloaded: X"
+	}
+	if c.IsRead {
+		r = "Read: ◯︎"
+	} else {
+		r = "Read: X"
+	}
+	return dl + "\t" + r
+}
 
 func (c Chapter) DirName(store *SQLite) string {
 	return fmt.Sprintf("%s/%02d/%05.1f-%s",

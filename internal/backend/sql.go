@@ -34,6 +34,7 @@ type Chapter struct {
 	MangaID     string
 	Downloaded  bool
 	IsRead      bool
+	ChapterPath string
 }
 
 // Implement interfaces list.DefaultItem and list.Item
@@ -52,12 +53,6 @@ func (c Chapter) Description() string {
 		r = "Read: X"
 	}
 	return dl + "\t" + r
-}
-
-func (c Chapter) DirName(store *SQLite) string {
-	return fmt.Sprintf("%s/%02d/%05.1f-%s",
-		store.GetByID(c.MangaID).SerTitle,
-		c.VolumeNum, c.ChapterNum, c.ChapterHash)
 }
 
 // Function to use with slice.SortFunc.
@@ -154,6 +149,7 @@ func (r *SQLite) getTags(MangaID string) []Tag {
 
 // Get all the chapters for a given manga.
 // Takes ID instead of the full struct for the same reason as getTags.
+// TODO: Include ChapterPath
 func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	query := `
 	SELECT *
@@ -168,7 +164,7 @@ func (r *SQLite) GetChapters(MangaID string) []Chapter {
 	all := make([]Chapter, 0)
 	for rows.Next() {
 		var c Chapter
-		err := rows.Scan(&c.ChapterHash, &c.ChapterNum, &c.ChapterName, &c.VolumeNum, &c.MangaID, &c.Downloaded, &c.IsRead)
+		err := rows.Scan(&c.ChapterHash, &c.ChapterNum, &c.ChapterName, &c.VolumeNum, &c.MangaID, &c.Downloaded, &c.IsRead, &c.ChapterPath)
 		if err != nil {
 			log.Fatalf("%s: Failed to parse chapter", err)
 		}
@@ -279,6 +275,7 @@ func (r *SQLite) initdb() {
 	    MangaID VARCHAR(64),
 	    Downloaded INTEGER NOT NULL,
 	    IsRead INTEGER NOT NULL,
+		ChapterPath VARCHAR(64),
 
 	    FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
 	);
@@ -360,14 +357,21 @@ func (r *SQLite) insertChapters(chapters []Chapter) {
 	}
 	// Sometimes the API return duplicates
 	// Don't know why it does, but just ignore them
-	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Chapter values (?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT OR IGNORE INTO Chapter values (?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Fatalf("%s: Failed to prepare transaction", err)
 	}
 	defer stmt.Close()
 
 	for _, c := range chapters {
-		_, err = stmt.Exec(c.ChapterHash, c.ChapterNum, c.ChapterName, c.VolumeNum, c.MangaID, c.Downloaded, c.IsRead)
+		_, err = stmt.Exec(c.ChapterHash,
+			c.ChapterNum,
+			c.ChapterName,
+			c.VolumeNum,
+			c.MangaID,
+			c.Downloaded,
+			c.IsRead,
+			c.ChapterPath)
 		if err != nil {
 			log.Fatalf("%s: Failed to execute transaction on %v", err, c)
 		}
@@ -445,7 +449,7 @@ func (r *SQLite) UpdateChapterRead(c Chapter) Chapter {
 
 // Get a new DB connection.
 // Guarantees that the file you specify will be created
-// and the database will be initialized.
+// and the tables will be initialized.
 func Opendb(name string) *SQLite {
 	db, err := sql.Open("sqlite3", name)
 	if err != nil {

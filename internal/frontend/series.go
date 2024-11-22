@@ -134,11 +134,9 @@ func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 }
 
 // TODO: This should download the chapter if it isn't already
-// It also needs to update the DB Chapter.IsRead field
 func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 	return func() tea.Msg {
-		fullPath := fmt.Sprintf("/home/twells/media/manga/%s", c.DirName(store))
-		readCmd := exec.Command("imv", "-f", "-d", "-r", fullPath)
+		readCmd := exec.Command("imv", "-f", "-d", "-r", c.ChapterPath)
 		if err := readCmd.Run(); err != nil {
 			log.Println(err)
 		}

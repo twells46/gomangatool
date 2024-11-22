@@ -43,9 +43,10 @@ func blankSeries() Series {
 	d := list.NewDefaultDelegate()
 	//d.ShowDescription = false
 	//d := NewSeriesDelegate()
+	l := list.New([]list.Item{}, d, 80, 25)
 
 	return Series{
-		list: list.New([]list.Item{}, d, 80, 25),
+		list: l,
 	}
 }
 
@@ -101,6 +102,8 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.library.list.SetItem(m.library.list.Index(), new)
 			m.series.manga = new
 			return newSeries(m), nil
+
+		// TODO: d should only be handled here, not by the default list, which has it page down
 		case "d":
 			cmds = append(cmds, m.series.list.StartSpinner())
 			cmds = append(cmds, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
@@ -139,6 +142,7 @@ func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 		if err := readCmd.Run(); err != nil {
 			log.Println(err)
 		}
+		store.UpdateChapterRead(c)
 		return ChapReadMsg(idx)
 	}
 }

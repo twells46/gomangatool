@@ -430,6 +430,19 @@ func (r *SQLite) UpdateChapterDownloaded(c Chapter) Chapter {
 	return c
 }
 
+func (r *SQLite) UpdateChapterRead(c Chapter) Chapter {
+	stmt := "UPDATE Chapter SET IsRead = 1 WHERE ChapterHash = ?"
+	res, err := r.db.Exec(stmt, c.ChapterHash)
+	if err != nil {
+		log.Fatalf("%s: Failed to update read status %v", err, c)
+	} else if n, _ := res.RowsAffected(); n > 1 {
+		log.Fatalf("Bad UpdateChapterRead: Updated %d rows", n)
+	}
+
+	c.IsRead = true
+	return c
+}
+
 // Get a new DB connection.
 // Guarantees that the file you specify will be created
 // and the database will be initialized.

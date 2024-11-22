@@ -40,8 +40,9 @@ func blankSeries() Series {
 	// TODO: Make item style different based on:
 	// downloaded
 	// isRead
-	d := list.NewDefaultDelegate()
-	d.ShowDescription = false
+	//d := list.NewDefaultDelegate()
+	//d.ShowDescription = false
+	d := NewSeriesDelegate()
 
 	return Series{
 		list: list.New([]list.Item{}, d, 80, 25),

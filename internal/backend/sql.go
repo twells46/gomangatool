@@ -65,7 +65,7 @@ func (c Chapter) Description() string {
 // Returns a negative number when a < b, a positive number
 // when a > b, and 0 when a == b.
 func chapterCmp(a, b Chapter) int {
-	if volDiff := cmp.Compare(a.VolumeNum, b.VolumeNum); volDiff != 0 {
+	if volDiff := cmp.Compare(a.VolumeNum, b.VolumeNum); (a.VolumeNum != 0 && b.VolumeNum != 0) && volDiff != 0 {
 		return volDiff
 	}
 	return cmp.Compare(a.ChapterNum, b.ChapterNum)

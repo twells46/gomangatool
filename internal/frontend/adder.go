@@ -135,19 +135,22 @@ func AdderUpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // Update function for abbreviated title input
 func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
+
 	switch msg := msg.(type) {
+	case backend.Manga:
+		cmds = append(cmds, m.library.list.InsertItem(2147483647, msg))
+		m = adderExit(m)
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlLeft:
 			m.adder.stage = chooser // Return to list to choose a new title
 			return m, nil
 
-		// TODO: This should be a tea.Cmd
 		case tea.KeyEnter:
 			m.adder.abbrevTitle = m.adder.textInput.Value()
-			backend.NewManga(m.adder.meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
-			m.library.toAddID = m.adder.mangaID // Tell the library view it has a new series to display
-			return adderExit(m), nil
+			cmds = append(cmds, adderNewManga(&m.adder, m.store))
 		}
 	}
 
@@ -160,7 +163,8 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.adder.textInput, cmd = m.adder.textInput.Update(msg)
-	return m, cmd
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
 // Overall view function for the Adder
@@ -224,5 +228,11 @@ func getTitles(m Adder) tea.Cmd {
 		m.meta = meta
 
 		return m
+	}
+}
+
+func adderNewManga(adder *Adder, store *backend.SQLite) tea.Cmd {
+	return func() tea.Msg {
+		return backend.NewManga(adder.meta, adder.fullTitle, adder.abbrevTitle, store)
 	}
 }

@@ -8,9 +8,7 @@ import (
 
 // The components of the main, library view
 type Library struct {
-	list      list.Model
-	toAddID   string
-	hasUpdate bool
+	list list.Model
 }
 
 // Initialize a new Library with the stored series
@@ -24,7 +22,7 @@ func initLibrary(store *backend.SQLite) Library {
 	list := list.New(items, d, 80, 25)
 	list.Title = "Library:"
 
-	return Library{list, "", false}
+	return Library{list}
 }
 
 // Overall Library update function
@@ -52,10 +50,6 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.library.toAddID != "" {
-		return updateAfterAdd(m), nil
-	}
-
 	var cmd tea.Cmd
 	m.library.list, cmd = m.library.list.Update(msg)
 	return m, cmd
@@ -64,12 +58,4 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 // Overall Library view function
 func LibraryView(m model) string {
 	return m.library.list.View()
-}
-
-// Add the series Adder just added to the view
-func updateAfterAdd(m model) model {
-	new := m.store.GetByID(m.library.toAddID)
-	m.library.list.InsertItem(2147483647, list.Item(new)) // Ghetto append using the max of an int
-	m.library.toAddID = ""
-	return m
 }

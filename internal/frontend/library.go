@@ -8,8 +8,9 @@ import (
 
 // The components of the main, library view
 type Library struct {
-	list    list.Model
-	toAddID string
+	list      list.Model
+	toAddID   string
+	hasUpdate bool
 }
 
 // Initialize a new Library with the stored series
@@ -23,7 +24,7 @@ func initLibrary(store *backend.SQLite) Library {
 	list := list.New(items, d, 80, 25)
 	list.Title = "Library:"
 
-	return Library{list, ""}
+	return Library{list, "", false}
 }
 
 // Overall Library update function

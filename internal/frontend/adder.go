@@ -108,7 +108,11 @@ func AdderUpdateIDInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // Update function for choosing the title (stage 1)
 func AdderUpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
+
 	switch msg := msg.(type) {
+	case Adder:
+		m.adder = msg
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
@@ -120,15 +124,16 @@ func AdderUpdateChooser(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 	}
 	if !m.adder.fetched {
-		return getTitles(m), nil
+		cmds = append(cmds, getTitles(m.adder))
 	}
 
 	var cmd tea.Cmd
 	m.adder.list, cmd = m.adder.list.Update(msg)
-	return m, cmd
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
-// View function for abbreviated title input (stage 2)
+// Update function for abbreviated title input
 func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -137,6 +142,7 @@ func AdderUpdateAbbrevInput(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.adder.stage = chooser // Return to list to choose a new title
 			return m, nil
 
+		// TODO: This should be a tea.Cmd
 		case tea.KeyEnter:
 			m.adder.abbrevTitle = m.adder.textInput.Value()
 			backend.NewManga(m.adder.meta, m.adder.fullTitle, m.adder.abbrevTitle, m.store)
@@ -171,12 +177,12 @@ func AdderView(m model) string {
 	}
 }
 
-// View function for ID input (stage 0)
+// View function for ID input
 func AdderViewIDInput(m model) string {
 	return fmt.Sprintf("Input the ID: %s", m.adder.textInput.View())
 }
 
-// View function for title chooser (stage 1)
+// View function for title chooser
 func AdderViewChooser(m model) string {
 	if !m.adder.fetched {
 		return "Querying Mangadex..."
@@ -184,7 +190,8 @@ func AdderViewChooser(m model) string {
 	return m.adder.list.View()
 }
 
-// View function for abbreviated title input (stage 2)
+// View function for abbreviated title input
+// TODO: Styling
 func AdderViewAbbrevInput(m model) string {
 	var view strings.Builder
 	view.WriteString(fmt.Sprintf("\nYour chosen title is:\n'%s'\n", m.adder.fullTitle))
@@ -195,23 +202,27 @@ func AdderViewAbbrevInput(m model) string {
 	return view.String()
 }
 
-// Get the titles and put them into a slice of []list.Item
-// Returns the model with the items set and stores the metadata for later use
-func getTitles(m model) model {
-	meta := backend.PullMangaMeta(m.adder.mangaID)
-	titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
-	for _, v := range meta.Data.Attributes.AltTitles {
-		if len(v.En) > 0 {
-			titleOptions = append(titleOptions, tOpt(v.En))
-		} else if len(v.Ja) > 0 {
-			titleOptions = append(titleOptions, tOpt(v.Ja))
-		} else if len(v.JaRo) > 0 {
-			titleOptions = append(titleOptions, tOpt(v.JaRo))
+// Get the title options and store the rest of the metadata so that we
+// don't have to query the API multiple times.
+// For now it needs to take and return the whole Adder
+// since it does so many things.
+func getTitles(m Adder) tea.Cmd {
+	return func() tea.Msg {
+		meta := backend.PullMangaMeta(m.mangaID)
+		titleOptions := []list.Item{tOpt(meta.Data.Attributes.Title.En)}
+		for _, v := range meta.Data.Attributes.AltTitles {
+			if len(v.En) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.En))
+			} else if len(v.Ja) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.Ja))
+			} else if len(v.JaRo) > 0 {
+				titleOptions = append(titleOptions, tOpt(v.JaRo))
+			}
 		}
-	}
-	m.adder.list.SetItems(titleOptions)
-	m.adder.fetched = true
-	m.adder.meta = meta
+		m.list.SetItems(titleOptions)
+		m.fetched = true
+		m.meta = meta
 
-	return m
+		return m
+	}
 }

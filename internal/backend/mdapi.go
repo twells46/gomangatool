@@ -302,7 +302,13 @@ func parseChData(data []feedChData, mangaID string, abbrev string) []Chapter {
 		} else {
 			v, err := strconv.ParseInt(d.Attributes.Volume, 10, 32)
 			if err != nil {
-				log.Fatalf("%s: Failed to parse int from %s", err, d.Attributes.Volume)
+				n, err := strconv.ParseFloat(d.Attributes.Volume, 64)
+				if err != nil {
+					v = 0
+				} else {
+					v = int64(n)
+				}
+				//log.Fatalf("%s: Failed to parse int from %s", err, d.Attributes.Volume)
 			}
 			vol = int(v)
 		}

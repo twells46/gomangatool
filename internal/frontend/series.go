@@ -67,6 +67,7 @@ func newSeries(m model) model {
 
 // Exit the series view and return to the Library
 func seriesExit(m model) model {
+	m.library.list.SetItem(m.library.list.Index(), m.series.manga)
 	m.series.copied = false
 	m.view = library
 	m.series.list.SetItems([]list.Item{})
@@ -86,29 +87,23 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		tmp := m.series.list.Items()[msg].(backend.Chapter)
 		tmp.IsRead = true
 		cmds = append(cmds, m.series.list.SetItem(int(msg), tmp))
+	case backend.Manga:
+		m.series.manga = msg
 		m.series.list.StopSpinner()
-
-	case list.Model:
-		m.series.list = msg
+		return newSeries(m), nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
 			return seriesExit(m), nil
-
-		// TODO: Refresh should be a tea.Cmd
 		case "r":
-			new := backend.RefreshFeed(m.library.list.SelectedItem().(backend.Manga), m.store)
-			m.library.list.SetItem(m.library.list.Index(), new)
-			m.series.manga = new
-			return newSeries(m), nil
-
-		// TODO: d should only be handled here, not by the default list, which has it page down
+			cmds = append(cmds, m.series.list.StartSpinner())
+			cmds = append(cmds, refresh(m.series.manga, m.store))
 		case "d":
 			cmds = append(cmds, m.series.list.StartSpinner())
 			cmds = append(cmds, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
+			return m, tea.Batch(cmds...) // prevent 'd' from being handles by the list
 		case "enter":
-			cmds = append(cmds, m.series.list.StartSpinner())
 			cmds = append(cmds, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
 		}
 	}
@@ -117,6 +112,12 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	m.series.list, cmd = m.series.list.Update(msg)
 	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
+}
+
+func refresh(manga backend.Manga, store *backend.SQLite) tea.Cmd {
+	return func() tea.Msg {
+		return backend.RefreshFeed(manga, store)
+	}
 }
 
 func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {

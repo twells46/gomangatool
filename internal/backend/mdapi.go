@@ -270,7 +270,7 @@ func RefreshFeed(manga Manga, store *SQLite) Manga {
 	slices.SortFunc(chapters, chapterCmp)
 	manga.Chapters = chapters
 	store.insertChapters(chapters)
-	manga = store.UpdateTimeModified(manga)
+	//manga = store.UpdateTimeModified(manga)
 	return manga
 }
 

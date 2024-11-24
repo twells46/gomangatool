@@ -35,7 +35,7 @@ func LibraryUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			m.view = series
 			// By calling newSeries here, the list will be loaded and rendered properly
 			// instantly
-			return newSeries(m), nil
+			return seriesRefreshList(m), nil
 		case "a":
 			m.view = adder
 			return m, nil

@@ -50,9 +50,8 @@ func blankSeries() Series {
 	}
 }
 
-// Create a new series view.
-// Returns that model with a correctly set list
-func newSeries(m model) model {
+// Returns the model with a correctly set list.
+func seriesRefreshList(m model) model {
 	items := make([]list.Item, 0)
 	for _, chapter := range m.series.manga.Chapters {
 		items = append(items, list.Item(chapter))
@@ -90,7 +89,7 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case backend.Manga:
 		m.series.manga = msg
 		m.series.list.StopSpinner()
-		return newSeries(m), nil
+		return seriesRefreshList(m), nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -102,9 +101,9 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		case "d":
 			cmds = append(cmds, m.series.list.StartSpinner())
 			cmds = append(cmds, dlChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
-			return m, tea.Batch(cmds...) // prevent 'd' from being handles by the list
+			return m, tea.Batch(cmds...) // prevent 'd' from being handled by the list
 		case "enter":
-			cmds = append(cmds, ReadChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
+			cmds = append(cmds, readChap(m.series.list.SelectedItem().(backend.Chapter), m.series.list.Index(), m.store))
 		}
 	}
 
@@ -135,7 +134,7 @@ func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 }
 
 // TODO: This should download the chapter if it isn't already
-func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
+func readChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 	return func() tea.Msg {
 		readCmd := exec.Command("imv", "-f", "-d", "-r", c.ChapterPath)
 		if err := readCmd.Run(); err != nil {
@@ -149,14 +148,14 @@ func ReadChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 // Overall Series view function
 func SeriesView(m model) string {
 	info := fmt.Sprintf("%s\n%s%s",
-		wrapStyle.Render(RenderTags(m.series.manga.Tags)),
+		wrapStyle.Render(renderTags(m.series.manga.Tags)),
 		boldStyle.Render("Description:\n"),
 		wrapStyle.Render(m.series.manga.Descr))
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, m.series.list.View(), info)
 }
 
-func RenderTags(tags []backend.Tag) string {
+func renderTags(tags []backend.Tag) string {
 	tagStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}).
 		Padding(0, 1, 0, 0)

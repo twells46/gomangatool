@@ -4,21 +4,25 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	//_ "github.com/mattn/go-sqlite3"
 	"github.com/twells46/gomangatool/internal/frontend"
 )
 
 func main() {
-	p := tea.NewProgram(frontend.InitModel())
+	f, _ := tea.LogToFile("debug.log", "debug")
+	defer f.Close()
+
+	p := tea.NewProgram(frontend.InitModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatalln(err)
 	}
 
-	//store := backend.Opendb("manga.sqlite3")
-	//tester := store.GetAll()
-	//backend.RefreshFeed(tester[0], store)
-
-	//fmt.Println(store.GetChapters(tester[0].MangaID))
+	/*
+		tester := all[0]
+			tester.Chapters = backend.DownloadAll(tester.Chapters, store)
+			fmt.Println(tester)
+	*/
+	//new := backend.RefreshFeed(tester, store)
+	//fmt.Println(new)
 
 	//fmt.Println(manga)
 	//store := backend.Opendb("manga.sqlite3")

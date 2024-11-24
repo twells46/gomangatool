@@ -1,5 +1,5 @@
 gomangatool
 *.csv
 *.db
-*.sqlite*
+*.sql*
 *.log

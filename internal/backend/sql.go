@@ -71,9 +71,6 @@ func chapterCmp(a, b Chapter) int {
 	return cmp.Compare(a.ChapterNum, b.ChapterNum)
 }
 
-// NOTE: This currently stores the publication status, but translation usually lags behind.
-// In order to truly evaluate whether we can ignore a series, would need to check the final Chapter
-// and compare it with the latest we have.
 type Manga struct {
 	MangaID      string
 	SerTitle     string
@@ -90,7 +87,7 @@ type Manga struct {
 }
 
 // Implement list.DefaultItem
-func (m Manga) FilterValue() string { return m.FullTitle + m.SerTitle }
+func (m Manga) FilterValue() string { return fmt.Sprintf("%s %s %v", m.FullTitle, m.SerTitle, m.Tags) }
 
 // Implement list.Item
 func (m Manga) Title() string       { return fmt.Sprintf("%s (%s)", m.FullTitle, m.SerTitle) }
@@ -411,9 +408,6 @@ func (r *SQLite) UpdateChapterRead(c Chapter) {
 		log.Fatalf("Bad UpdateChapterRead: Updated %d rows", n)
 	}
 }
-
-// ------- DELETE FUNCTIONS -------
-// TODO
 
 // Initialization functions
 

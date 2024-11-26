@@ -195,7 +195,6 @@ func AdderViewChooser(m model) string {
 }
 
 // View function for abbreviated title input
-// TODO: Styling
 func AdderViewAbbrevInput(m model) string {
 	var view strings.Builder
 	view.WriteString(fmt.Sprintf("\nYour chosen title is:\n'%s'\n", m.adder.fullTitle))

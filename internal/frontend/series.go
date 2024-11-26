@@ -37,9 +37,6 @@ type Series struct {
 }
 
 func blankSeries() Series {
-	// TODO: Make item style different based on:
-	// downloaded
-	// isRead
 	d := list.NewDefaultDelegate()
 	//d.ShowDescription = false
 	//d := NewSeriesDelegate()
@@ -78,11 +75,13 @@ func SeriesUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	switch msg := msg.(type) {
 	case ChapDlMsg:
+		m.series.manga.Chapters[msg].Downloaded = true
 		tmp := m.series.list.Items()[msg].(backend.Chapter)
 		tmp.Downloaded = true
 		cmds = append(cmds, m.series.list.SetItem(int(msg), tmp))
 		m.series.list.StopSpinner()
 	case ChapReadMsg:
+		m.series.manga.Chapters[msg].IsRead = true
 		tmp := m.series.list.Items()[msg].(backend.Chapter)
 		tmp.IsRead = true
 		cmds = append(cmds, m.series.list.SetItem(int(msg), tmp))
@@ -120,20 +119,12 @@ func refresh(manga backend.Manga, store *backend.SQLite) tea.Cmd {
 }
 
 func dlChap(chapter backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
-	// This function should download a chapter.
-	// It must update the list with the chapter with the download flag triggered
-	// so that I can style downloaded chapters differently.
-	// It also needs to place the chapter correctly in the sorted list of chapters.
-	// Currently it does not update the model from the parent Manga.
-	// Maybe that should be an exit function thing?
-
 	return func() tea.Msg {
 		backend.DownloadChapters(store, chapter)
 		return ChapDlMsg(idx)
 	}
 }
 
-// TODO: This should download the chapter if it isn't already
 func readChap(c backend.Chapter, idx int, store *backend.SQLite) tea.Cmd {
 	return func() tea.Msg {
 		readCmd := exec.Command("imv", "-f", "-d", "-r", c.ChapterPath)

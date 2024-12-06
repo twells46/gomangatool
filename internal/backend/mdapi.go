@@ -258,7 +258,7 @@ func RefreshFeed(manga Manga, store *SQLite) Manga {
 	offset := 0
 	feed := pullFeedMeta(manga.MangaID, offset, manga.TimeModified)
 
-	chapters := make([]Chapter, 0)
+	chapters := manga.Chapters
 
 	for ok := true; ok; ok = feed.Offset < feed.Total {
 		pageChapters := parseChData(feed.Data, manga.MangaID, manga.SerTitle)
